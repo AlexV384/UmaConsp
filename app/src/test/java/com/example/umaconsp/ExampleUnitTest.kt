@@ -1,4 +1,4 @@
-package com.mine.android.texteditor
+package com.example.umaconsp
 
 import org.junit.Test
 

@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Text Editor"
+rootProject.name = "Umaconsp"
 include(":app")
  
