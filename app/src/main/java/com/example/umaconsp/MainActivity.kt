@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.umaconsp.data.localstorage.PrivateFolder
 import com.example.umaconsp.presentation.chat.ChatScreen
 import com.example.umaconsp.presentation.chatlist.ChatListScreen
 import com.example.umaconsp.presentation.chatlist.ChatListViewModel
@@ -41,6 +42,7 @@ class MainActivity : ComponentActivity() {
         // Менеджеры для хранения настроек (тема и IP сервера)
         val themeManager = ThemeManager(applicationContext)
         val settingsManager = SettingsManager(applicationContext)
+        val modelManager = PrivateFolder(applicationContext)
 
         // Общая ViewModel для списка чатов (живёт на уровне активности)
         val chatListViewModel = ChatListViewModel()
@@ -100,7 +102,8 @@ class MainActivity : ComponentActivity() {
                                     scope.launch {
                                         settingsManager.setServerIp(newIp)
                                     }
-                                }
+                                },
+                                onModelPicked = {uri -> modelManager.importModel(uri)}
                             )
                         }
                     ) {

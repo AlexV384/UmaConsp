@@ -38,4 +38,5 @@
     <string name="cannot_get_uri">Не удалось получить ссылку на файл</string>
     <string name="status_thinking">Модель фантазирует...</string>
     <string name="thinking_title">Фантазии модели</string>
+    <string name="import_local">Импортировать модель (локально)</string>
 </resources>

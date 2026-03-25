@@ -1,5 +1,6 @@
 package com.example.umaconsp.presentation.settings
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -24,7 +25,8 @@ fun SettingsDrawerContent(
     isDarkTheme: Boolean,
     onThemeChange: (Boolean) -> Unit,
     serverIp: String,
-    onIpChange: (String) -> Unit
+    onIpChange: (String) -> Unit,
+    onModelPicked: suspend (uri: Uri) -> Unit
 ) {
     // Вертикальный контейнер, занимающий весь экран с фоном
     Column(
@@ -70,6 +72,12 @@ fun SettingsDrawerContent(
             label = { Text(stringResource(R.string.settings_server_ip)) },
             singleLine = true,               // многострочный ввод не нужен
             modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ImportModel(
+            modifier = Modifier.fillMaxWidth(),
+            onPicked = onModelPicked,
         )
     }
 }
