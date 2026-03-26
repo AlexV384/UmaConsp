@@ -20,7 +20,7 @@
     <string name="settings_server_ip">IP сервера</string>
     <string name="settings_server_ip_hint">IP вашего сервера в локальной сети</string>
     <string name="delete_image">Удалить изображение</string>
-    <string name="no_chats">Нет чатов. Нажмите +, чтобы создать первый чат(скачай Umamusume, будь человеком).</string>
+    <string name="no_chats">Нет чатов. Нажмите +, чтобы создать первый чат (скачай Umamusume, будь человеком).</string>
     <string name="new_chat">Новый чат</string>
     <string name="back">Назад</string>
     <string name="rename_chat">Переименовать чат</string>
@@ -39,4 +39,5 @@
     <string name="status_thinking">Модель фантазирует...</string>
     <string name="thinking_title">Фантазии модели</string>
     <string name="import_local">Импортировать модель (локально)</string>
+    <string name="select_local">Выбрать модель (локально)</string>
 </resources>

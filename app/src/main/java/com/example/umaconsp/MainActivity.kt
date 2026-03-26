@@ -5,13 +5,26 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.umaconsp.data.localstorage.PrivateFolder
+import com.example.umaconsp.llamacpp.Native
 import com.example.umaconsp.presentation.chat.ChatScreen
 import com.example.umaconsp.presentation.chatlist.ChatListScreen
 import com.example.umaconsp.presentation.chatlist.ChatListViewModel
@@ -43,6 +56,7 @@ class MainActivity : ComponentActivity() {
         val themeManager = ThemeManager(applicationContext)
         val settingsManager = SettingsManager(applicationContext)
         val modelManager = PrivateFolder(applicationContext)
+        val localModelLoader = Native()
 
         // Общая ViewModel для списка чатов (живёт на уровне активности)
         val chatListViewModel = ChatListViewModel()
@@ -106,13 +120,19 @@ class MainActivity : ComponentActivity() {
                                         settingsManager.setServerIp(newIp)
                                     }
                                 },
-                                onModelPicked = { uri ->
-                                    scope.launch {
-                                        modelManager.importModel(uri)
-                                        modelList = modelManager.getImportedModels()
-                                    }
+                                onModelDirPicked = { uri ->
+                                    modelManager.importModel(uri)
+                                    modelList = modelManager.getImportedModels()
                                 },
-                                modelList = modelList
+                                modelList = modelList,
+                                onLocalModelPicked = { name ->
+                                    if (name == "(unload)"){
+                                        localModelLoader.unloadModelPub()
+                                    } else {
+                                        val fullPath = applicationContext.filesDir.path + "/" + name
+                                        localModelLoader.loadModelPub(fullPath)
+                                    }
+                                }
                             )
                         }
                     ) {

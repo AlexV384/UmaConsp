@@ -91,7 +91,7 @@ class ChatListViewModel : ViewModel() {
      * Создаёт новый чат с автоматическим названием "Чат N".
      * @return ID созданного чата
      */
-    suspend fun createNewChat(): String {
+    suspend fun createNewChat(remote: Boolean = true): String {
         val newId = UUID.randomUUID().toString()
         // Определяем номер нового чата по количеству существующих
         val count = db.chatDao().getAllChats().firstOrNull()?.size ?: 0

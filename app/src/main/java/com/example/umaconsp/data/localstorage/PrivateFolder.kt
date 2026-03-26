@@ -10,7 +10,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 
-val TAG = "DirectoryManager"
+const val TAG = "DirectoryManager"
 
 class PrivateFolder(val context: Context, var isLoading: Boolean = false) {
     fun getAllPrivateDirectories(): List<File> {
@@ -82,7 +82,7 @@ class PrivateFolder(val context: Context, var isLoading: Boolean = false) {
             }
         }
 
-        public fun ensureModelFolder(treeUri: Uri, context: Context): File {
+        fun ensureModelFolder(treeUri: Uri, context: Context): File {
             val pickedDir: DocumentFile = DocumentFile.fromTreeUri(context, treeUri)!!
             if (pickedDir.isDirectory) {
                 Log.d(TAG, "PickedDir: ${pickedDir.name}")

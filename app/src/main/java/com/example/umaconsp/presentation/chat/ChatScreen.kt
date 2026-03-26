@@ -566,24 +566,28 @@ fun InputSection(onSendMessage: (String) -> Unit, onAddImage: () -> Unit) {
                 shape = RoundedCornerShape(20.dp)
             )
 
-            Spacer(modifier = Modifier.width(8.dp))
+            // Анимированный отступ и кнопка отправки
+            AnimatedVisibility(visible = !textFieldValue.isEmpty()) {
+                Row {
+                    Spacer(modifier = Modifier.width(8.dp))
 
-            // Кнопка отправки (активна только если есть текст)
-            FilledIconButton(
-                onClick = {
-                    if (textFieldValue.isNotBlank()) {
-                        onSendMessage(textFieldValue)
-                        textFieldValue = ""
+                    // Кнопка отправки (видна только если есть текст)
+                    FilledIconButton(
+                        onClick = {
+                            if (textFieldValue.isNotBlank()) {
+                                onSendMessage(textFieldValue)
+                                textFieldValue = ""
+                            }
+                        },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Send,
+                            contentDescription = stringResource(R.string.button_send),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
-                },
-                enabled = textFieldValue.isNotBlank(),
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Send,
-                    contentDescription = stringResource(R.string.button_send),
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
+                }
             }
         }
     }

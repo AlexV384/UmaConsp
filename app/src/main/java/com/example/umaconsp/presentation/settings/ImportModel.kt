@@ -8,7 +8,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
@@ -16,8 +15,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -70,14 +71,6 @@ fun ImportModel(
                 )
             )
     ) {
-        val buttonWeight by animateFloatAsState(
-            targetValue = if (isLoading) 0.85f else 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        )
-
         Button(
             onClick = {
                 if (!isLoading) {
@@ -86,7 +79,7 @@ fun ImportModel(
             },
             enabled = !isLoading,
             modifier = Modifier
-                .weight(buttonWeight)
+                .weight(1f)
                 .animateContentSize(
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -112,13 +105,16 @@ fun ImportModel(
                 animationSpec = tween(300)
             ) + fadeOut(animationSpec = tween(300))
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .size(36.dp)
-                    .padding(start = 5.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row {
+                Spacer(modifier = Modifier.width(8.dp))
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(2.dp),
+                    strokeWidth = 3.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
