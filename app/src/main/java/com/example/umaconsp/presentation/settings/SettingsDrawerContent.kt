@@ -4,7 +4,7 @@ import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -19,14 +19,18 @@ import com.example.umaconsp.R
  * @param onThemeChange Callback при изменении переключателя темы
  * @param serverIp Текущий IP-адрес сервера (строковое представление)
  * @param onIpChange Callback при изменении текста в поле ввода IP
+ * @param onModelPicked Callback при выборе модели
+ * @param modelList Список доступных моделей
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsDrawerContent(
     isDarkTheme: Boolean,
     onThemeChange: (Boolean) -> Unit,
     serverIp: String,
     onIpChange: (String) -> Unit,
-    onModelPicked: suspend (uri: Uri) -> Unit
+    onModelPicked: suspend (uri: Uri) -> Unit,
+    modelList: List<String>
 ) {
     // Вертикальный контейнер, занимающий весь экран с фоном
     Column(
@@ -79,5 +83,52 @@ fun SettingsDrawerContent(
             modifier = Modifier.fillMaxWidth(),
             onPicked = onModelPicked,
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Dropdown selection для моделей
+        var expanded by remember { mutableStateOf(false) }
+        var selectedItem by remember { mutableStateOf(modelList.firstOrNull() ?: "(empty)") }
+
+        // Обновляем выбранный элемент при изменении списка моделей
+        LaunchedEffect(modelList) {
+            if (modelList.isNotEmpty() && selectedItem !in modelList) {
+                selectedItem = modelList.first()
+            } else if (modelList.isEmpty()) {
+                selectedItem = "(empty)"
+            }
+        }
+
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = selectedItem,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Select Model") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                enabled = modelList.isNotEmpty()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                modelList.forEach { item ->
+                    DropdownMenuItem(
+                        text = { Text(item) },
+                        onClick = {
+                            selectedItem = item
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
     }
 }

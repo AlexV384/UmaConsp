@@ -54,6 +54,9 @@ class MainActivity : ComponentActivity() {
             // Подписываемся на изменения IP-адреса сервера
             val serverIp by settingsManager.serverIpFlow.collectAsState(initial = SettingsManager.DEFAULT_IP)
 
+            // Состояние для списка моделей
+            var modelList by remember { mutableStateOf(modelManager.getImportedModels()) }
+
             // При изменении IP обновляем глобальную настройку в объекте AiApi
             LaunchedEffect(serverIp) {
                 AiApi.currentIp = serverIp
@@ -103,7 +106,13 @@ class MainActivity : ComponentActivity() {
                                         settingsManager.setServerIp(newIp)
                                     }
                                 },
-                                onModelPicked = {uri -> modelManager.importModel(uri)}
+                                onModelPicked = { uri ->
+                                    scope.launch {
+                                        modelManager.importModel(uri)
+                                        modelList = modelManager.getImportedModels()
+                                    }
+                                },
+                                modelList = modelList
                             )
                         }
                     ) {

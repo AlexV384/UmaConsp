@@ -17,6 +17,9 @@ class PrivateFolder(val context: Context, var isLoading: Boolean = false) {
         val privateDir = context.filesDir
         return privateDir.listFiles { file -> file.isDirectory }?.toList() ?: emptyList()
     }
+    fun getImportedModels() : List<String> {
+        return getAllPrivateDirectories().map { x -> x.name }
+    }
 
     suspend fun importModel(uri: Uri) {
 //        Log.i("ModelImporter", "Picked directory successful: ${uri.path}")
