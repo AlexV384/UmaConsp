@@ -2,7 +2,7 @@ package com.example.umaconsp.llamacpp
 
 import android.util.Log
 
-val TAG = "Native.kt"
+const val TAG = "Native.kt"
 class Native {
     var loadedModelAddr: Long = 0
     companion object {
@@ -26,4 +26,5 @@ class Native {
         unloadModelJni(loadedModelAddr)
         loadedModelAddr = 0
     }
+    external fun converseJni(addr: Long, image: ByteArray, callback: (String) -> Unit)
 }
