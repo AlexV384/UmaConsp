@@ -1,7 +1,5 @@
 package com.example.umaconsp.presentation.chat
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -17,81 +15,91 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSources
-import java.io.ByteArrayOutputStream
-import java.io.File
+import java.io.IOException
 import java.util.*
 
-private const val TAG = "ChatViewModel"                 // для логирования
-private const val MAX_IMAGE_SIZE = 1024                 // максимальный размер стороны изображения после сжатия (пикселей)
-private const val IMAGE_QUALITY = 80                    // качество JPEG при сжатии (0-100)
-private const val THROTTLE_MS = 100L                    // минимальный интервал между обновлениями БД (мс)
+// Теги для логирования
+private const val TAG = "ChatViewModel"
+
+// Задержка между обновлениями БД (мс) – снижает нагрузку на Room и UI
+private const val THROTTLE_MS = 100L
+
+// Максимальный размер одного файла (10 МБ). Каждый файл проверяется отдельно.
+// При превышении отправка прерывается.
+private const val MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
 
 /**
- * ViewModel для экрана чата. Управляет отправкой сообщений, потоковым получением ответов,
- * статусом соединения, выбранными изображениями и взаимодействием с ChatListViewModel.
+ * ViewModel для экрана чата.
+ * Управляет отправкой сообщений, потоковым получением ответов от AI,
+ * статусом соединения, выбранными файлами (Uri) и взаимодействием с ChatListViewModel.
  *
- * @param chatId Идентификатор чата, с которым работает ViewModel
- * @param chatListViewModel Общая ViewModel для работы со списком чатов и БД
+ * @param chatId ID текущего чата
+ * @param chatListViewModel Общая ViewModel для работы с БД и списком чатов
  */
 class ChatViewModel(
     private val chatId: String,
     private val chatListViewModel: ChatListViewModel
 ) : ViewModel() {
 
-    // ==================== Состояния ====================
+    // ==================== Состояния (StateFlow) ====================
 
-    // Статус: подключение, генерация, ошибка и т.д.
+    // Текущий статус (подключен, отправка, генерация, ошибка и т.д.)
     private val _status = MutableStateFlow(getString(R.string.status_connected))
     val status: StateFlow<String> = _status
 
-    // Список URI выбранных пользователем изображений перед отправкой
+    // Список URI выбранных пользователем файлов (изображений) перед отправкой
     private val _selectedImageUris = MutableStateFlow<List<Uri>>(emptyList())
     val selectedImageUris: StateFlow<List<Uri>> = _selectedImageUris
 
-    // Текущее SSE-подключение (для возможности отмены)
+    // ==================== Поля для управления потоковой передачей ====================
+
+    // Текущее SSE-подключение (EventSource) – для возможности отмены
     private var currentEventSource: EventSource? = null
 
     // ID последнего отправленного пользовательского сообщения (используется для обновления размышлений)
     private var currentUserMessageId: String? = null
 
-    // Временные метки последних обновлений БД для throttle (избегаем слишком частых записей)
+    // Временные метки для throttle – чтобы не обновлять БД слишком часто
     private var lastThinkingUpdate = 0L
     private var lastTokenUpdate = 0L
 
     // ==================== Жизненный цикл ====================
 
+    /**
+     * Вызывается при уничтожении ViewModel (закрытие экрана чата).
+     * Отменяем активное SSE-подключение, чтобы не было утечек и ненужных фоновых операций.
+     */
     override fun onCleared() {
         super.onCleared()
-        // При закрытии экрана закрываем SSE-соединение
         currentEventSource?.cancel()
     }
 
-    // ==================== Вспомогательные функции ====================
+    // ==================== Вспомогательные методы ====================
 
     /**
-     * Проверяет, существует ли ещё чат в БД. Используется для защиты от гонок,
-     * когда чат могли удалить во время генерации.
+     * Проверяет, существует ли ещё чат в базе данных.
+     * Используется для защиты от ситуации, когда чат был удалён во время генерации ответа.
      */
     private suspend fun isChatExists(): Boolean = chatListViewModel.getChat(chatId) != null
 
     /**
-     * Получение строки ресурса из Application контекста (т.к. ViewModel не имеет доступа к Activity).
+     * Получает строку из ресурсов приложения (удобно для ViewModel, у которой нет прямого доступа к Context).
      */
     private fun getString(resId: Int, vararg args: Any): String {
         return UmaconspApplication.instance.getAppContext().getString(resId, *args)
     }
 
-    // ==================== Отправка сообщений ====================
+    // ==================== Отправка сообщения ====================
 
     /**
-     * Отправляет сообщение пользователя.
-     * Если есть выбранные изображения — отправляет их вместе с текстом.
-     * @param text Текст сообщения (может быть пустым, если есть изображения)
+     * Отправляет сообщение пользователя (текст + файлы).
+     * @param text Текст сообщения (может быть пустым, если есть файлы)
      */
     fun sendMessage(text: String) {
+        // Если нет ни текста, ни выбранных файлов – ничего не делаем
         if (text.isBlank() && _selectedImageUris.value.isEmpty()) return
 
         viewModelScope.launch {
@@ -101,8 +109,8 @@ class ChatViewModel(
                 return@launch
             }
 
-            // Сохраняем текущие изображения и очищаем выбор
-            val currentImages = _selectedImageUris.value.map { it.toString() }
+            // Сохраняем выбранные файлы и сразу очищаем выбор (чтобы пользователь видел пустую область превью)
+            val currentFiles = _selectedImageUris.value
             clearSelectedImages()
 
             // Создаём сообщение пользователя и сохраняем в БД
@@ -110,22 +118,22 @@ class ChatViewModel(
                 id = UUID.randomUUID().toString(),
                 text = text,
                 isUser = true,
-                imageUrls = currentImages
+                imageUrls = currentFiles.map { it.toString() }  // сохраняем URI как строки
             )
             chatListViewModel.addMessage(chatId, userMessage)
-            currentUserMessageId = userMessage.id
+            currentUserMessageId = userMessage.id  // запоминаем ID, чтобы потом обновлять размышления
 
             _status.value = getString(R.string.status_sending)
 
             try {
-                // Отправляем запрос в зависимости от наличия изображений
-                if (currentImages.isNotEmpty()) {
-                    sendMessageWithImagesStream(text, currentImages.map { Uri.parse(it) })
+                // Отправляем запрос: если есть файлы – multipart с файлами, иначе только текст
+                if (currentFiles.isNotEmpty()) {
+                    sendMessageWithFilesStream(text, currentFiles)
                 } else {
                     sendTextMessageStream(text)
                 }
             } catch (e: Exception) {
-                // Обработка ошибок при отправке (например, нет сети)
+                // Обработка ошибок (нет сети, таймаут, слишком большой файл и т.п.)
                 Log.e(TAG, "Ошибка при отправке", e)
                 val errorMsg = getString(R.string.error_connection_message, e.message ?: "")
                 if (isChatExists()) {
@@ -141,67 +149,66 @@ class ChatViewModel(
         }
     }
 
-    // ==================== Построение запросов ====================
+    // ==================== Формирование HTTP-запросов ====================
 
     /**
-     * Отправляет текстовое сообщение (без изображений) с использованием SSE.
+     * Отправляет текстовое сообщение (без файлов) в потоковом режиме (SSE).
      */
     private fun sendTextMessageStream(text: String) {
+        // Строим multipart-тело с одним полем "message"
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("message", text)
             .build()
 
         val request = Request.Builder()
-            .url(AiApi.baseUrl)
+            .url(AiApi.baseUrl)                // адрес сервера (из настроек)
             .post(body)
-            .addHeader("Accept", "text/event-stream")   // важно для SSE
+            .addHeader("Accept", "text/event-stream")  // важно: сервер должен вернуть SSE
             .build()
 
         startEventSource(request)
     }
 
     /**
-     * Отправляет сообщение с изображениями.
-     * Изображения сжимаются до MAX_IMAGE_SIZE и сохраняются во временные файлы,
-     * затем добавляются в multipart-запрос.
+     * Отправляет сообщение с одним или несколькими файлами.
+     * Файлы читаются в память как ByteArray и добавляются в multipart-запрос.
+     * Каждый файл проверяется на размер (не более MAX_FILE_SIZE_BYTES).
      */
-    private suspend fun sendMessageWithImagesStream(text: String, uris: List<Uri>) {
+    private suspend fun sendMessageWithFilesStream(text: String, uris: List<Uri>) {
         val context = UmaconspApplication.instance.getAppContext()
         val builder = MultipartBody.Builder().setType(MultipartBody.FORM)
+
+        // Добавляем текстовое поле
         builder.addFormDataPart("message", text)
 
-        val tempFiles = mutableListOf<File>()
-
+        // Для каждого URI читаем файл целиком в байты
         for (uri in uris) {
-            // Читаем исходное изображение
-            val inputStream = context.contentResolver.openInputStream(uri) ?: continue
-            val originalBitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream.close()
+            // Определяем MIME-тип (например, image/png, image/jpeg)
+            val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
 
-            // Масштабируем, сохраняя пропорции
-            val width = originalBitmap.width
-            val height = originalBitmap.height
-            val scale = if (width > height) MAX_IMAGE_SIZE.toFloat() / width else MAX_IMAGE_SIZE.toFloat() / height
-            val newWidth = (width * scale).toInt()
-            val newHeight = (height * scale).toInt()
-            val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, newWidth, newHeight, true)
+            // Открываем поток на чтение
+            val inputStream = context.contentResolver.openInputStream(uri)
+                ?: throw IOException("Cannot open stream for $uri")
 
-            // Сжимаем в JPEG
-            val outputStream = ByteArrayOutputStream()
-            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, IMAGE_QUALITY, outputStream)
-            val compressedData = outputStream.toByteArray()
+            // Читаем все байты файла
+            val bytes = inputStream.use { it.readBytes() }
 
-            // Сохраняем во временный файл
-            val tempFile = File(
-                context.cacheDir,
-                "temp_image_${System.currentTimeMillis()}_${UUID.randomUUID()}.jpg"
+            // Проверяем размер файла – если превышает лимит, прерываем отправку
+            if (bytes.size > MAX_FILE_SIZE_BYTES) {
+                throw IOException("File too large: ${bytes.size / 1024 / 1024} MB > 10 MB")
+            }
+
+            // Берём имя файла (обычно последний сегмент URI)
+            val fileName = uri.lastPathSegment ?: "file"
+
+            // Создаём часть multipart с именем "image"
+            val part = MultipartBody.Part.createFormData(
+                "image",
+                fileName,
+                bytes.toRequestBody(mimeType.toMediaTypeOrNull())
             )
-            tempFile.writeBytes(compressedData)
-            tempFiles.add(tempFile)
-
-            // Добавляем часть в multipart
-            builder.addFormDataPart("image", tempFile.name, tempFile.asRequestBody("image/jpeg".toMediaTypeOrNull()))
+            builder.addPart(part)
         }
 
         val body = builder.build()
@@ -218,11 +225,12 @@ class ChatViewModel(
 
     /**
      * Запускает SSE-соединение и обрабатывает поступающие события.
-     * Использует throttle для снижения частоты обновлений БД.
+     * Использует throttle для ограничения частоты обновлений БД.
      */
     private fun startEventSource(request: Request) {
-        // Отменяем предыдущее соединение, если есть
+        // Отменяем предыдущее соединение (если есть)
         currentEventSource?.cancel()
+
         val factory = EventSources.createFactory(AiApi.client)
         currentEventSource = factory.newEventSource(request, object : okhttp3.sse.EventSourceListener() {
             // Накопленные данные в рамках одного ответа
@@ -232,7 +240,7 @@ class ChatViewModel(
 
             /**
              * Вызывается при успешном открытии соединения.
-             * Создаём пустое сообщение ассистента в БД, которое будем постепенно обновлять.
+             * Создаём пустое сообщение ассистента в БД, которое будем постепенно заполнять.
              */
             override fun onOpen(eventSource: EventSource, response: okhttp3.Response) {
                 viewModelScope.launch {
@@ -259,7 +267,7 @@ class ChatViewModel(
                 try {
                     val json = org.json.JSONObject(data)
 
-                    // Размышления модели (отправляются до основного ответа)
+                    // === РАЗМЫШЛЕНИЯ (thinking) ===
                     if (json.has("thinking")) {
                         val thinking = json.getString("thinking")
                         accumulatedThinking += thinking
@@ -276,7 +284,7 @@ class ChatViewModel(
                         return
                     }
 
-                    // Токен основного ответа
+                    // === ТОКЕН ОСНОВНОГО ОТВЕТА ===
                     if (json.has("token")) {
                         val token = json.getString("token")
                         accumulatedText += token
@@ -292,7 +300,7 @@ class ChatViewModel(
                             }
                         }
                     } else if (json.has("error")) {
-                        // Ошибка от сервера
+                        // === ОШИБКА ===
                         val error = json.getString("error")
                         viewModelScope.launch {
                             if (isChatExists()) {
@@ -315,8 +323,7 @@ class ChatViewModel(
 
             /**
              * Вызывается, когда сервер завершил отправку (поле done: true).
-             * Выполняем финальное обновление сообщения ассистента,
-             * очищаем временные файлы и сбрасываем состояния.
+             * Выполняем финальное обновление сообщения ассистента и сбрасываем состояния.
              */
             override fun onClosed(eventSource: EventSource) {
                 viewModelScope.launch {
@@ -331,9 +338,6 @@ class ChatViewModel(
                     accumulatedText = ""
                     accumulatedThinking = ""
                     currentUserMessageId = null
-                    // Удаляем временные файлы изображений
-                    val cacheDir = UmaconspApplication.instance.getAppContext().cacheDir
-                    cacheDir.listFiles()?.filter { it.name.startsWith("temp_image_") }?.forEach { it.delete() }
                 }
             }
 
@@ -358,7 +362,7 @@ class ChatViewModel(
         })
     }
 
-    // ==================== Управление выбранными изображениями ====================
+    // ==================== Управление выбранными файлами ====================
 
     fun addSelectedImage(uri: Uri) {
         _selectedImageUris.value = _selectedImageUris.value + uri
