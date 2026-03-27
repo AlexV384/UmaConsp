@@ -1,6 +1,7 @@
 package com.example.umaconsp.presentation.chatlist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -40,11 +42,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.umaconsp.R
 import com.example.umaconsp.presentation.chat.RenameChatDialog
+import com.example.umaconsp.presentation.decor.CleatScatterBackgroundCanvas
 import kotlinx.coroutines.launch
 
 /**
@@ -111,13 +118,37 @@ fun ChatListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-        ) {
-            if (chats.isEmpty()) {
-                // Если нет чатов, показываем сообщение
-                Text(
-                    text = stringResource(R.string.no_chats),
-                    modifier = Modifier.align(Alignment.Center)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f),
+                        )
+                    )
                 )
+        ) {
+            CleatScatterBackgroundCanvas()
+            if (chats.isEmpty()) {
+                // Если нет чатов, показываем сообщение с размытой тенью текста
+                Box(
+                    modifier = Modifier.align(Alignment.Center).padding(all = 5.dp)
+                ) {
+                    // Тень текста (смещённая и размытая копия)
+                    Text(
+                        text = stringResource(R.string.no_chats),
+                        color = Color.Black.copy(alpha = 0.6f),
+                        modifier = Modifier
+                            .offset(x = 2.dp, y = 2.dp)
+                            .blur(4.dp),
+                        textAlign = TextAlign.Center
+                    )
+                    // Основной текст
+                    Text(
+                        text = stringResource(R.string.no_chats),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
+                    )
+                }
             } else {
                 // Сетка чатов с двумя колонками
                 LazyVerticalGrid(
