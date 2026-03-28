@@ -56,7 +56,6 @@ class MainActivity : ComponentActivity() {
         val themeManager = ThemeManager(applicationContext)
         val settingsManager = SettingsManager(applicationContext)
         val modelManager = PrivateFolder(applicationContext)
-        val localModelLoader = Native()
 
         // Общая ViewModel для списка чатов (живёт на уровне активности)
         val chatListViewModel = ChatListViewModel()
@@ -127,10 +126,10 @@ class MainActivity : ComponentActivity() {
                                 modelList = modelList,
                                 onLocalModelPicked = { name ->
                                     if (name == "(unload)"){
-                                        localModelLoader.unloadModelPub()
+                                        Native.unloadModelPub()
                                     } else {
                                         val fullPath = applicationContext.filesDir.path + "/" + name
-                                        localModelLoader.loadModelPub(fullPath)
+                                        Native.loadModelPub(fullPath)
                                     }
                                 }
                             )

@@ -3,12 +3,10 @@ package com.example.umaconsp.llamacpp
 import android.util.Log
 
 const val TAG = "Native.kt"
-class Native {
+object Native {
     var loadedModelAddr: Long = 0
-    companion object {
-        init {
-            System.loadLibrary("LlamaCppApp")
-        }
+    init {
+        System.loadLibrary("LlamaCppApp")
     }
     external fun loadModelJni(path: String): Long
     fun loadModelPub(path: String) {
@@ -26,5 +24,17 @@ class Native {
         unloadModelJni(loadedModelAddr)
         loadedModelAddr = 0
     }
-    external fun converseJni(addr: Long, image: ByteArray, callback: (String) -> Unit)
+    external fun converseJni(addr: Long, image: ByteArray, callback: TokenCallback)
+    fun conversePub(image: ByteArray, callback: (String) -> Unit){
+        if (loadedModelAddr != 0L){
+            converseJni(loadedModelAddr, image, object : TokenCallback {
+                override fun onToken(token: String) = callback(token)
+            })
+        } else {
+            Log.d(TAG, "Cannot converse when model is not loaded")
+        }
+    }
+    interface TokenCallback {
+        fun onToken(token: String)
+    }
 }
