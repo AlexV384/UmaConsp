@@ -37,4 +37,7 @@ object Native {
     interface TokenCallback {
         fun onToken(token: String)
     }
+    fun isModelLoaded() : Boolean{
+        return loadedModelAddr != 0L
+    }
 }
