@@ -4,11 +4,11 @@ import android.util.Log
 
 const val TAG = "Native.kt"
 object Native {
-    var loadedModelAddr: Long = 0
+    private var loadedModelAddr: Long = 0
     init {
         System.loadLibrary("LlamaCppApp")
     }
-    external fun loadModelJni(path: String): Long
+    private external fun loadModelJni(path: String): Long
     fun loadModelPub(path: String) {
         if (loadedModelAddr != 0L){
             unloadModelPub()
@@ -18,13 +18,13 @@ object Native {
         Log.d(TAG, "Model pointer: $addr")
         loadedModelAddr = addr
     }
-    external fun unloadModelJni(addr: Long)
+    private external fun unloadModelJni(addr: Long)
     fun unloadModelPub(){
         Log.d(TAG, "Unloading model")
         unloadModelJni(loadedModelAddr)
         loadedModelAddr = 0
     }
-    external fun converseJni(addr: Long, image: ByteArray, callback: TokenCallback)
+    private external fun converseJni(addr: Long, image: ByteArray, callback: TokenCallback)
     fun conversePub(image: ByteArray, callback: (String) -> Unit){
         if (loadedModelAddr != 0L){
             converseJni(loadedModelAddr, image, object : TokenCallback {
