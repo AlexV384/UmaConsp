@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.umaconsp.R
+import com.example.umaconsp.presentation.decor.CleatScatterBackgroundCanvas
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,6 +66,7 @@ fun DocumentListScreen(
             )
         }
     ) { paddingValues ->
+        CleatScatterBackgroundCanvas()
         Box(
             modifier = Modifier
                 .fillMaxSize()
