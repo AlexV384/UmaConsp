@@ -24,42 +24,25 @@ import com.example.umaconsp.utils.AiApi
 import com.example.umaconsp.utils.LocalDocumentListViewModel
 import kotlinx.coroutines.launch
 
-/**
- * Главная активность приложения.
- * Отвечает за:
- * - Инициализацию менеджеров тем и настроек.
- * - Установку Compose-содержимого.
- * - Навигацию между экранами (список чатов → чат).
- * - Боковое меню (Drawer) с настройками.
- * - Обработку системной кнопки "Назад" для закрытия меню.
- * - Синхронизацию IP‑адреса сервера из настроек.
- */
+
 class MainActivity : ComponentActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Менеджеры для хранения настроек (тема и IP сервера)
         val themeManager = ThemeManager(applicationContext)
         val settingsManager = SettingsManager(applicationContext)
         val documentListViewModel = DocumentListViewModel()
         val modelManager = PrivateFolder(applicationContext)
 
-        // Общая ViewModel для списка чатов (живёт на уровне активности)
         val chatListViewModel = DocumentListViewModel()
 
         setContent {
-            // Подписываемся на изменения темы (тёмная/светлая)
             val isDarkTheme by themeManager.isDarkTheme.collectAsState(initial = false)
-
-            // Подписываемся на изменения IP-адреса сервера
             val serverIp by settingsManager.serverIpFlow.collectAsState(initial = SettingsManager.DEFAULT_IP)
-
-            // Состояние для списка моделей
             var modelList by remember { mutableStateOf(modelManager.getImportedModels()) }
 
-            // При изменении IP обновляем глобальную настройку в объекте AiApi
             LaunchedEffect(serverIp) {
                 AiApi.currentIp = serverIp
             }

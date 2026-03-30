@@ -175,13 +175,6 @@ class DocumentViewModel(
         })
     }
 
-    /**
-     * Парсит JSON-ответ, полученный от модели.
-     * Поддерживает два формата:
-     * 1. { "text": "строка", ... }
-     * 2. { "text": [ { "text": "строка1", ... }, ... ] }
-     * В случае ошибки возвращает сообщение об ошибке.
-     */
     private fun parseResponseJson(response: String): String {
         return try {
             val trimmed = response.trim()
