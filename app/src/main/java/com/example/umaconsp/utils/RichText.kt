@@ -16,24 +16,28 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material3.MaterialTheme
 
 /**
- * Рендерит HTML с поддержкой тегов <b>, <i>, <u>, <div align="..."> и Markdown-заголовков (#).
- * Заголовки уровня 1-3: #, ##, ### (пробел после # обязателен) преобразуются в жирный текст с увеличенным шрифтом.
+ * Рендерит Markdown с поддержкой:
+ * - **жирный**
+ * - *курсив*
+ * - __подчёркнутый__
+ * - # Заголовки (уровни 1-3)
+ * - <div align="center">...</div> для выравнивания (остаётся от HTML)
  *
- * @param html Строка с HTML-разметкой
+ * @param markdown Строка с Markdown-разметкой
  * @param modifier Модификатор для Column
  * @param color Цвет текста
  */
 @Composable
 fun RichText(
-    html: String,
+    markdown: String,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface
 ) {
-    val blocks = parseHtmlBlocks(html)
+    val blocks = parseHtmlBlocks(markdown)
     Column(modifier = modifier) {
         blocks.forEach { block ->
             BasicText(
-                text = buildStyledText(block.text, color),
+                text = parseMarkdown(block.text, color),
                 modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.bodyLarge.copy(
                     color = color,
@@ -46,9 +50,9 @@ fun RichText(
 
 private data class HtmlBlock(val text: String, val alignment: TextAlign)
 
-private fun parseHtmlBlocks(html: String): List<HtmlBlock> {
+private fun parseHtmlBlocks(markdown: String): List<HtmlBlock> {
     val blocks = mutableListOf<HtmlBlock>()
-    var remaining = html
+    var remaining = markdown
     var currentAlignment = TextAlign.Start
 
     while (remaining.isNotEmpty()) {
@@ -96,12 +100,10 @@ private fun parseHtmlBlocks(html: String): List<HtmlBlock> {
 }
 
 @Composable
-private fun buildStyledText(html: String, color: Color): AnnotatedString {
+private fun parseMarkdown(markdown: String, color: Color): AnnotatedString {
     return buildAnnotatedString {
-        val styleStack = mutableListOf<SpanStyle>()
         var i = 0
-        val length = html.length
-        val defaultFontSize = MaterialTheme.typography.bodyLarge.fontSize
+        val length = markdown.length
 
         fun fontSizeForHeader(level: Int): TextUnit = when (level) {
             1 -> 24.sp
@@ -111,72 +113,67 @@ private fun buildStyledText(html: String, color: Color): AnnotatedString {
         }
 
         while (i < length) {
-            val ch = html[i]
-            if (ch == '<') {
-                val endTag = html.indexOf('>', i)
-                if (endTag == -1) {
-                    append(html.substring(i))
-                    break
+            val ch = markdown[i]
+            if (ch == '#' && (i == 0 || markdown[i - 1] == '\n')) {
+                var level = 0
+                var j = i
+                while (j < length && markdown[j] == '#') {
+                    level++
+                    j++
                 }
-                val tag = html.substring(i + 1, endTag).trim()
-                i = endTag + 1
-
-                when {
-                    tag.startsWith("b") || tag == "strong" -> {
-                        styleStack.add(SpanStyle(fontWeight = FontWeight.Bold))
-                        pushStyle(styleStack.last())
+                if (j < length && markdown[j] == ' ') {
+                    val startContent = j + 1
+                    val endOfLine = markdown.indexOf('\n', startContent)
+                    val headerText = if (endOfLine == -1) markdown.substring(startContent) else markdown.substring(startContent, endOfLine)
+                    val headerStyle = SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = fontSizeForHeader(level)
+                    )
+                    withStyle(headerStyle) {
+                        append(headerText)
                     }
-                    tag.startsWith("/b") || tag == "/strong" -> {
-                        if (styleStack.isNotEmpty()) styleStack.removeAt(styleStack.lastIndex)
-                        if (styleStack.isNotEmpty()) pushStyle(styleStack.last())
-                        else pop()
+                    i = if (endOfLine == -1) length else endOfLine
+                    if (i < length && markdown[i] == '\n') {
+                        append('\n')
+                        i++
                     }
-                    tag.startsWith("i") || tag == "em" -> {
-                        styleStack.add(SpanStyle(fontStyle = FontStyle.Italic))
-                        pushStyle(styleStack.last())
-                    }
-                    tag.startsWith("/i") || tag == "/em" -> {
-                        if (styleStack.isNotEmpty()) styleStack.removeAt(styleStack.lastIndex)
-                        if (styleStack.isNotEmpty()) pushStyle(styleStack.last())
-                        else pop()
-                    }
-                    tag.startsWith("u") -> {
-                        styleStack.add(SpanStyle(textDecoration = TextDecoration.Underline))
-                        pushStyle(styleStack.last())
-                    }
-                    tag.startsWith("/u") -> {
-                        if (styleStack.isNotEmpty()) styleStack.removeAt(styleStack.lastIndex)
-                        if (styleStack.isNotEmpty()) pushStyle(styleStack.last())
-                        else pop()
-                    }
-                    // Игнорируем прочие теги (div, p и т.д.)
+                    continue
                 }
-            } else {
-                val nextTag = html.indexOf('<', i)
-                val segment = if (nextTag == -1) html.substring(i) else html.substring(i, nextTag)
-                // Разбиваем сегмент на строки для поддержки заголовков Markdown
-                val lines = segment.split('\n')
-                for ((lineIndex, rawLine) in lines.withIndex()) {
-                    val trimmedStart = rawLine.trimStart()
-                    if (trimmedStart.startsWith("#") && trimmedStart.length > 1 && trimmedStart[1] == ' ') {
-                        // Заголовок Markdown: считаем количество '#' в начале
-                        val headerLevel = trimmedStart.takeWhile { it == '#' }.length
-                        val headerText = trimmedStart.substring(headerLevel).trimStart()
-                        val headerStyle = SpanStyle(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = fontSizeForHeader(headerLevel)
-                        )
-                        withStyle(headerStyle) {
-                            append(headerText)
-                        }
-                    } else {
-                        // Обычная строка
-                        append(rawLine)
-                    }
-                    if (lineIndex < lines.size - 1) append('\n')
-                }
-                i += segment.length
             }
+
+            if (ch == '*' && i + 1 < length && markdown[i + 1] == '*') {
+                val end = markdown.indexOf("**", i + 2)
+                if (end != -1) {
+                    val content = markdown.substring(i + 2, end)
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(content)
+                    }
+                    i = end + 2
+                    continue
+                }
+            } else if (ch == '*' && (i == 0 || markdown[i - 1] != '\\')) {
+                val end = markdown.indexOf('*', i + 1)
+                if (end != -1 && (end == i + 1 || markdown[end - 1] != '\\')) {
+                    val content = markdown.substring(i + 1, end)
+                    withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
+                        append(content)
+                    }
+                    i = end + 1
+                    continue
+                }
+            } else if (ch == '_' && i + 1 < length && markdown[i + 1] == '_') {
+                val end = markdown.indexOf("__", i + 2)
+                if (end != -1) {
+                    val content = markdown.substring(i + 2, end)
+                    withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) {
+                        append(content)
+                    }
+                    i = end + 2
+                    continue
+                }
+            }
+            append(ch)
+            i++
         }
     }
 }

@@ -37,8 +37,6 @@ import com.example.umaconsp.R
 import com.example.umaconsp.presentation.documentlist.DocumentListViewModel
 import com.example.umaconsp.utils.LocalDocumentListViewModel
 import com.example.umaconsp.utils.RichText
-import kotlinx.coroutines.launch
-import java.io.IOException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,7 +103,6 @@ fun DocumentScreen(
                     )
                 },
                 actions = {
-                    // Только переключение режима
                     IconButton(onClick = { viewModel.toggleEditing() }) {
                         Icon(
                             imageVector = if (isEditing) Icons.Default.Visibility else Icons.Default.Edit,
@@ -214,7 +211,7 @@ fun DocumentScreen(
                             .padding(16.dp)
                     ) {
                         RichText(
-                            html = text,
+                            markdown = text,
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.onSurface
                         )
