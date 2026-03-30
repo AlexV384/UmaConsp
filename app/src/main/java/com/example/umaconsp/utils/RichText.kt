@@ -15,18 +15,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.MaterialTheme
 
-/**
- * Рендерит Markdown с поддержкой:
- * - **жирный**
- * - *курсив*
- * - __подчёркнутый__
- * - # Заголовки (уровни 1-3)
- * - <div align="center">...</div> для выравнивания (остаётся от HTML)
- *
- * @param markdown Строка с Markdown-разметкой
- * @param modifier Модификатор для Column
- * @param color Цвет текста
- */
+
 @Composable
 fun RichText(
     markdown: String,
