@@ -11,6 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.umaconsp.ai.DefaultResponseParser
+import com.example.umaconsp.ai.LocalAiProvider
+import com.example.umaconsp.ai.RemoteAiProvider
 import com.example.umaconsp.data.localstorage.PrivateFolder
 import com.example.umaconsp.llamacpp.Native
 import com.example.umaconsp.presentation.document.DocumentScreen
@@ -20,10 +23,8 @@ import com.example.umaconsp.presentation.settings.SettingsDrawerContent
 import com.example.umaconsp.presentation.settings.SettingsManager
 import com.example.umaconsp.presentation.theme.ThemeManager
 import com.example.umaconsp.ui.theme.UmaconspTheme
-import com.example.umaconsp.utils.AiApi
-import com.example.umaconsp.utils.LocalDocumentListViewModel
+import com.example.umaconsp.utils.*
 import kotlinx.coroutines.launch
-
 
 class MainActivity : ComponentActivity() {
 
@@ -36,7 +37,9 @@ class MainActivity : ComponentActivity() {
         val documentListViewModel = DocumentListViewModel()
         val modelManager = PrivateFolder(applicationContext)
 
-        val chatListViewModel = DocumentListViewModel()
+        // Создаём экземпляры провайдеров и парсера
+        val aiProvider = RemoteAiProvider() // Здесь можно переключить на LocalAiProvider()
+        val responseParser = DefaultResponseParser()
 
         setContent {
             val isDarkTheme by themeManager.isDarkTheme.collectAsState(initial = false)
@@ -47,14 +50,16 @@ class MainActivity : ComponentActivity() {
                 AiApi.currentIp = serverIp
             }
 
-            // Применяем тему (кастомная обёртка над MaterialTheme)
             UmaconspTheme(darkTheme = isDarkTheme) {
-                CompositionLocalProvider(LocalDocumentListViewModel provides documentListViewModel) {
+                CompositionLocalProvider(
+                    LocalDocumentListViewModel provides documentListViewModel,
+                    LocalAiProvider provides aiProvider,
+                    LocalResponseParser provides responseParser
+                ) {
                     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                     val scope = rememberCoroutineScope()
                     val navController = rememberNavController()
 
-                    // Обработка кнопки "Назад" — если меню открыто, закрываем его
                     BackHandler(enabled = drawerState.isOpen) {
                         scope.launch { drawerState.close() }
                     }
@@ -70,22 +75,17 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Боковое меню (Drawer) с настройками
                     ModalNavigationDrawer(
                         drawerState = drawerState,
                         drawerContent = {
                             SettingsDrawerContent(
                                 isDarkTheme = isDarkTheme,
                                 onThemeChange = { enabled ->
-                                    scope.launch {
-                                        themeManager.setDarkTheme(enabled)
-                                    }
+                                    scope.launch { themeManager.setDarkTheme(enabled) }
                                 },
                                 serverIp = serverIp,
                                 onIpChange = { newIp ->
-                                    scope.launch {
-                                        settingsManager.setServerIp(newIp)
-                                    }
+                                    scope.launch { settingsManager.setServerIp(newIp) }
                                 },
                                 onModelDirPicked = { uri ->
                                     modelManager.importModel(uri)
@@ -93,7 +93,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 modelList = modelList,
                                 onLocalModelPicked = { name ->
-                                    if (name == "(unload)"){
+                                    if (name == "(unload)") {
                                         Native.unloadModelPub()
                                     } else {
                                         val fullPath = applicationContext.filesDir.path + "/" + name
@@ -103,12 +103,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     ) {
-                        // Основная поверхность приложения
                         Surface(
                             modifier = Modifier.fillMaxSize(),
                             color = MaterialTheme.colorScheme.background
                         ) {
-                            // Навигация между экранами
                             NavHost(
                                 navController = navController,
                                 startDestination = "document_list"
@@ -131,7 +129,8 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                                 composable("document/{documentId}") { backStackEntry ->
-                                    val documentId = backStackEntry.arguments?.getString("documentId") ?: return@composable
+                                    val documentId = backStackEntry.arguments?.getString("documentId")
+                                        ?: return@composable
                                     DocumentScreen(
                                         documentId = documentId,
                                         onBack = { navController.popBackStack() },

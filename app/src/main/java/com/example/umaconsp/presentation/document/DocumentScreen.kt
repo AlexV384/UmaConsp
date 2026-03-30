@@ -34,8 +34,13 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.umaconsp.R
+import com.example.umaconsp.ai.LocalAiProvider
+import com.example.umaconsp.ai.RemoteAiProvider
+import com.example.umaconsp.ai.DefaultResponseParser
 import com.example.umaconsp.presentation.documentlist.DocumentListViewModel
+import com.example.umaconsp.utils.LocalAiProvider
 import com.example.umaconsp.utils.LocalDocumentListViewModel
+import com.example.umaconsp.utils.LocalResponseParser
 import com.example.umaconsp.utils.RichText
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,8 +51,11 @@ fun DocumentScreen(
     onOpenSettings: () -> Unit
 ) {
     val documentListViewModel = LocalDocumentListViewModel.current as DocumentListViewModel
-    val viewModel: DocumentViewModel = remember(documentId) {
-        DocumentViewModel(documentId, documentListViewModel)
+    val aiProvider = LocalAiProvider.current
+    val responseParser = LocalResponseParser.current
+
+    val viewModel: DocumentViewModel = remember(documentId, aiProvider, responseParser) {
+        DocumentViewModel(documentId, documentListViewModel, aiProvider, responseParser)
     }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
