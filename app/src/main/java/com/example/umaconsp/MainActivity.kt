@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.umaconsp.ai.DefaultResponseParser
 import com.example.umaconsp.ai.LocalAiProvider
+import com.example.umaconsp.ai.PlaintextResponseParser
 import com.example.umaconsp.ai.RemoteAiProvider
 import com.example.umaconsp.data.localstorage.PrivateFolder
 import com.example.umaconsp.llamacpp.Native
@@ -38,8 +39,8 @@ class MainActivity : ComponentActivity() {
         val modelManager = PrivateFolder(applicationContext)
 
         // Создаём экземпляры провайдеров и парсера
-        val aiProvider = RemoteAiProvider() // Здесь можно переключить на LocalAiProvider()
-        val responseParser = DefaultResponseParser()
+        val aiProvider = LocalAiProvider() // Здесь можно переключить на LocalAiProvider()
+        val responseParser = PlaintextResponseParser()
 
         setContent {
             val isDarkTheme by themeManager.isDarkTheme.collectAsState(initial = false)

@@ -14,7 +14,6 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 
-
 class LocalAiProvider : AiProvider {
     override suspend fun sendImages(images: List<Uri>): Flow<AiEvent> =
         callbackFlow {
@@ -31,24 +30,18 @@ class LocalAiProvider : AiProvider {
                 return@callbackFlow
             }
 
-            // Run the native work on the IO dispatcher
-            withContext(Dispatchers.IO) {
-                try {
-                    // `Native.conversePub` receives the first byte array.
-                    // It reports progress via the provided callback.
-                    Native.conversePub(byteArrays[0]) { token ->
-                        trySend(AiEvent.Token(token))
-                    }
-                    // TODO: implement per‑image callbacks and emit
-                    // AiEvent.Token / AiEvent.Complete as needed
-                } catch (e: Exception) {
-                    // Propagate any exception as an error event
-                    trySend(AiEvent.Error(e))
-                } finally {
-                    // Signal completion of the flow
-                    awaitClose { /* no‑op */ }
+            val callback = object : Native.TokenCallback {
+                override fun onToken(token: String) {
+                    trySend(AiEvent.Token(token))
+                }
+
+                override fun onTerminator() {
+                    trySend(AiEvent.Complete)
+                    close() // End the flow when terminator is received
                 }
             }
+            Native.conversePub(byteArrays[0], callback)
+            awaitClose {}
         }.flowOn(Dispatchers.IO)
 }
 private suspend fun uriToByteArray(

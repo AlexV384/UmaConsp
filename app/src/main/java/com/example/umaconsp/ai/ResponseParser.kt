@@ -91,3 +91,9 @@ class DefaultResponseParser : ResponseParser {
             .replace("'", "&#39;")
     }
 }
+class PlaintextResponseParser: ResponseParser{
+    override fun parse(rawResponse: String): String {
+        return rawResponse
+    }
+
+}

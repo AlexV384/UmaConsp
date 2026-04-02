@@ -25,17 +25,16 @@ object Native {
         loadedModelAddr = 0
     }
     private external fun converseJni(addr: Long, image: ByteArray, callback: TokenCallback)
-    fun conversePub(image: ByteArray, callback: (String) -> Unit){
+    fun conversePub(image: ByteArray, callback: TokenCallback){
         if (loadedModelAddr != 0L){
-            converseJni(loadedModelAddr, image, object : TokenCallback {
-                override fun onToken(token: String) = callback(token)
-            })
+            converseJni(loadedModelAddr, image, callback)
         } else {
             Log.d(TAG, "Cannot converse when model is not loaded")
         }
     }
     interface TokenCallback {
         fun onToken(token: String)
+        fun onTerminator()
     }
     fun isModelLoaded() : Boolean{
         return loadedModelAddr != 0L
