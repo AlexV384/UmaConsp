@@ -161,7 +161,7 @@ fun ChatScreen(
     }
 
     // Лаунчер для запроса разрешения на чтение медиа (Android 13+)
-    val permissionLauncher = rememberLauncherForActivityResult(
+    val permissionGalleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
@@ -170,6 +170,8 @@ fun ChatScreen(
             Toast.makeText(context, R.string.permission_required, Toast.LENGTH_SHORT).show()
         }
     }
+
+
 
     Scaffold(
         topBar = {
@@ -302,7 +304,7 @@ fun ChatScreen(
                     when {
                         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
                             // Android 13+ требует разрешения READ_MEDIA_IMAGES
-                            permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+                            permissionGalleryLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
                         }
                         else -> {
                             // Для старых версий разрешение READ_EXTERNAL_STORAGE уже должно быть запрошено
