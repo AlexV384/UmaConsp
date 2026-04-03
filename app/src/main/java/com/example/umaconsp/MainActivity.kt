@@ -1,5 +1,6 @@
 package com.example.umaconsp
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -13,7 +14,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.umaconsp.ai.DefaultResponseParser
 import com.example.umaconsp.ai.LocalAiProvider
-import com.example.umaconsp.ai.PlaintextResponseParser
 import com.example.umaconsp.ai.RemoteAiProvider
 import com.example.umaconsp.data.localstorage.PrivateFolder
 import com.example.umaconsp.llamacpp.Native
@@ -38,15 +38,23 @@ class MainActivity : ComponentActivity() {
         val documentListViewModel = DocumentListViewModel()
         val modelManager = PrivateFolder(applicationContext)
 
-        // Создаём экземпляры провайдеров и парсера
-        val aiProvider = LocalAiProvider() // Здесь можно переключить на LocalAiProvider()
-        val responseParser = PlaintextResponseParser()
+        val responseParser = DefaultResponseParser()
 
         setContent {
             val isDarkTheme by themeManager.isDarkTheme.collectAsState(initial = false)
             val serverIp by settingsManager.serverIpFlow.collectAsState(initial = SettingsManager.DEFAULT_IP)
+            val useLocalModel by settingsManager.useLocalModelFlow.collectAsState(initial = true)
             var modelList by remember { mutableStateOf(modelManager.getImportedModels()) }
+            val exportFolderUri by settingsManager.exportFolderUriFlow.collectAsState(initial = null)
 
+            // Создаём провайдера в зависимости от режима
+            val aiProvider = if (useLocalModel) {
+                LocalAiProvider()
+            } else {
+                RemoteAiProvider()
+            }
+
+            // При изменении IP обновляем глобальный объект (только для RemoteAiProvider)
             LaunchedEffect(serverIp) {
                 AiApi.currentIp = serverIp
             }
@@ -80,6 +88,14 @@ class MainActivity : ComponentActivity() {
                         drawerState = drawerState,
                         drawerContent = {
                             SettingsDrawerContent(
+                                exportFolderUri = exportFolderUri,
+                                onExportFolderPicked = { uri ->
+                                    scope.launch {
+                                        val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                                        contentResolver.takePersistableUriPermission(uri, takeFlags)
+                                        settingsManager.setExportFolderUri(uri.toString())
+                                    }
+                                },
                                 isDarkTheme = isDarkTheme,
                                 onThemeChange = { enabled ->
                                     scope.launch { themeManager.setDarkTheme(enabled) }
@@ -89,7 +105,7 @@ class MainActivity : ComponentActivity() {
                                     scope.launch { settingsManager.setServerIp(newIp) }
                                 },
                                 onModelDirPicked = { uri ->
-                                    modelManager.importModel(uri)
+                                    scope.launch { modelManager.importModel(uri) }
                                     modelList = modelManager.getImportedModels()
                                 },
                                 modelList = modelList,
@@ -100,6 +116,10 @@ class MainActivity : ComponentActivity() {
                                         val fullPath = applicationContext.filesDir.path + "/" + name
                                         Native.loadModelPub(fullPath)
                                     }
+                                },
+                                useLocalModel = useLocalModel,
+                                onUseLocalModelChange = { useLocal ->
+                                    scope.launch { settingsManager.setUseLocalModel(useLocal) }
                                 }
                             )
                         }

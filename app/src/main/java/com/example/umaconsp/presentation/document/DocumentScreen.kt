@@ -10,8 +10,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -34,12 +32,9 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.umaconsp.R
-import com.example.umaconsp.ai.LocalAiProvider
-import com.example.umaconsp.ai.RemoteAiProvider
-import com.example.umaconsp.ai.DefaultResponseParser
 import com.example.umaconsp.presentation.documentlist.DocumentListViewModel
-import com.example.umaconsp.utils.LocalAiProvider
 import com.example.umaconsp.utils.LocalDocumentListViewModel
+import com.example.umaconsp.utils.LocalAiProvider
 import com.example.umaconsp.utils.LocalResponseParser
 import com.example.umaconsp.utils.RichText
 
@@ -75,7 +70,6 @@ fun DocumentScreen(
     ) { uris ->
         if (uris.isNotEmpty()) {
             uris.forEach { viewModel.addSelectedImage(it) }
-            // Автоматически отправляем после выбора
             viewModel.sendImagesToModel()
         }
     }
@@ -167,22 +161,6 @@ fun DocumentScreen(
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodyMedium
                 )
-            }
-
-            if (selectedImageUris.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(selectedImageUris) { uri ->
-                        SelectedImagePreview(
-                            imageUri = uri,
-                            onRemove = { viewModel.removeSelectedImage(uri) }
-                        )
-                    }
-                }
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
