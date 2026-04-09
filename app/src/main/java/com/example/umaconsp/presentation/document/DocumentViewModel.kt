@@ -1,7 +1,9 @@
 package com.example.umaconsp.presentation.document
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.umaconsp.R
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.File
 
 private const val TAG = "DocumentViewModel"
 
@@ -37,6 +40,8 @@ class DocumentViewModel(
     private val _selectedImageUris = MutableStateFlow<List<Uri>>(emptyList())
     val selectedImageUris: StateFlow<List<Uri>> = _selectedImageUris
 
+    private val _takenPhotoUri = MutableStateFlow(Uri.EMPTY)
+    val takenPhotoUri: StateFlow<Uri> = _takenPhotoUri
     init {
         viewModelScope.launch {
             _text.value = documentListViewModel.getDocumentContent(documentId)
@@ -108,5 +113,19 @@ class DocumentViewModel(
 
     fun clearSelectedImages() {
         _selectedImageUris.value = emptyList()
+    }
+    fun createPictureUri(
+        context: Context,
+        provider: String = "${context.packageName}.provider",
+        fileName: String = "picture_${System.currentTimeMillis()}",
+        fileExtension: String = ".jpg"
+    ) {
+        val tempFile = File.createTempFile(
+            fileName, fileExtension, context.filesDir
+        ).apply {
+            createNewFile()
+        }
+
+        _takenPhotoUri.value = FileProvider.getUriForFile(context.applicationContext, provider, tempFile)
     }
 }
