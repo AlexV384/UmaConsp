@@ -1,7 +1,9 @@
 package com.example.umaconsp.presentation.chat
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.umaconsp.R
@@ -18,6 +20,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.sse.EventSource
 import okhttp3.sse.EventSources
+import java.io.File
 import java.io.IOException
 import java.util.*
 
@@ -53,6 +56,9 @@ class ChatViewModel(
     // Список URI выбранных пользователем файлов (изображений) перед отправкой
     private val _selectedImageUris = MutableStateFlow<List<Uri>>(emptyList())
     val selectedImageUris: StateFlow<List<Uri>> = _selectedImageUris
+
+    private val _takenPhotoUri = MutableStateFlow(Uri.EMPTY)
+    val takenPhotoUri: StateFlow<Uri> = _takenPhotoUri
 
     // ==================== Поля для управления потоковой передачей ====================
 
@@ -374,5 +380,22 @@ class ChatViewModel(
 
     fun clearSelectedImages() {
         _selectedImageUris.value = emptyList()
+    }
+
+
+    // ==================== Управление uri для камеры ====================
+    fun createPictureUri(
+        context: Context,
+        provider: String = "${context.packageName}.provider",
+        fileName: String = "picture_${System.currentTimeMillis()}",
+        fileExtension: String = ".jpg"
+    ) {
+        val tempFile = File.createTempFile(
+            fileName, fileExtension, context.filesDir
+        ).apply {
+            createNewFile()
+        }
+
+        _takenPhotoUri.value = FileProvider.getUriForFile(context.applicationContext, provider, tempFile)
     }
 }

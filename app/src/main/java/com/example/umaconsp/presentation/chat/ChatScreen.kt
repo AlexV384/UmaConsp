@@ -3,6 +3,7 @@ package com.example.umaconsp.presentation.chat
 import android.Manifest
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -151,6 +153,7 @@ fun ChatScreen(
         } ?: Toast.makeText(context, R.string.cannot_get_uri, Toast.LENGTH_SHORT).show()
     }
 
+
     // Лаунчер для выбора нескольких изображений из галереи
     val multipleImagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia()
@@ -159,6 +162,7 @@ fun ChatScreen(
             uris.forEach { viewModel.addSelectedImage(it) }
         }
     }
+
 
     // Лаунчер для запроса разрешения на чтение медиа (Android 13+)
     val permissionGalleryLauncher = rememberLauncherForActivityResult(
@@ -171,7 +175,37 @@ fun ChatScreen(
         }
     }
 
+    val imagePicker = {
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+                // Android 13+ требует разрешения READ_MEDIA_IMAGES
+                permissionGalleryLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+            }
 
+            else -> {
+                // Для старых версий разрешение READ_EXTERNAL_STORAGE уже должно быть запрошено
+                multipleImagePickerLauncher.launch(
+                    PickVisualMediaRequest(
+                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                    )
+                )
+            }
+        }
+    }
+
+    val camera = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { isSuccess ->
+        if (isSuccess) {
+            Log.d("PhotoTaker", "The photo is taken!")
+        }
+    }
+
+    val cameraLauncher = {
+        viewModel.createPictureUri(context)
+        camera.launch(viewModel.takenPhotoUri.value)
+        viewModel.addSelectedImage(viewModel.takenPhotoUri.value)
+    }
 
     Scaffold(
         topBar = {
@@ -236,7 +270,9 @@ fun ChatScreen(
         ) {
             // Карточка статуса (соединение, генерация, ошибка)
             Card(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (status.contains("ошибка", ignoreCase = true)) {
                         MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
@@ -295,23 +331,14 @@ fun ChatScreen(
                 }
             }
 
+
             // Поле ввода и кнопки
             InputSection(
                 onSendMessage = { text ->
                     viewModel.sendMessage(text)
                 },
-                onAddImage = {
-                    when {
-                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
-                            // Android 13+ требует разрешения READ_MEDIA_IMAGES
-                            permissionGalleryLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
-                        }
-                        else -> {
-                            // Для старых версий разрешение READ_EXTERNAL_STORAGE уже должно быть запрошено
-                            multipleImagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        }
-                    }
-                }
+                onAddImage = imagePicker,
+                onTakePhoto = cameraLauncher
             )
         }
     }
@@ -440,7 +467,11 @@ fun UserMessageBubble(message: Message) {
                             modifier = Modifier
                                 .size(80.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
+                                .border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    RoundedCornerShape(8.dp)
+                                ),
                             contentScale = ContentScale.Crop
                         )
                     }
@@ -525,8 +556,9 @@ fun SelectedImagePreview(imageUri: Uri, onRemove: () -> Unit) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InputSection(onSendMessage: (String) -> Unit, onAddImage: () -> Unit) {
+fun InputSection(onSendMessage: (String) -> Unit, onAddImage: () -> Unit, onTakePhoto: () -> Unit) {
     var textFieldValue by remember { mutableStateOf("") }
+    var menuExpanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -536,18 +568,36 @@ fun InputSection(onSendMessage: (String) -> Unit, onAddImage: () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Кнопка добавления изображения
             IconButton(
-                onClick = onAddImage
+                onClick = { menuExpanded = true }
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = stringResource(R.string.button_add_images),
                     tint = MaterialTheme.colorScheme.primary
                 )
+
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    TextButton(
+                        onClick = onAddImage
+                    ) {
+                        Text( text = "Выбрать из гелереи" )
+                    }
+                    TextButton(
+                        onClick = onTakePhoto
+                    ) {
+                        Text(text = "Сделать фото")
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.width(8.dp))
