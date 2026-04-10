@@ -40,4 +40,6 @@
     <string name="thinking_title">Фантазии модели</string>
     <string name="import_local">Импортировать модель (локально)</string>
     <string name="select_local">Выбрать модель (локально)</string>
+    <string name="gallery_pick_desc">Выбрать из галереи</string>
+    <string name="take_photo_desc">Сделать фото</string>
 </resources>

@@ -3,10 +3,16 @@ package com.example.umaconsp.presentation.document
 import android.Manifest
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,6 +27,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -65,6 +72,14 @@ fun DocumentScreen(
         documentTitle = documentListViewModel.getDocument(documentId)?.title ?: "Конспект"
     }
 
+    var expanded by remember { mutableStateOf(false) }
+
+    val rotation by animateFloatAsState(
+        targetValue = if (expanded) 45f else 0f,
+        animationSpec = tween(durationMillis = 200),
+        label = "FAB rotation"
+    )
+
     val multipleImagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia()
     ) { uris ->
@@ -82,6 +97,20 @@ fun DocumentScreen(
         } else {
             Toast.makeText(context, R.string.permission_required, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    val camera = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { isSuccess ->
+        if (isSuccess) {
+            Log.d("PhotoTaker", "The photo is taken!")
+        }
+    }
+
+    val cameraLauncher = {
+        viewModel.createPictureUri(context)
+        camera.launch(viewModel.takenPhotoUri.value)
+        viewModel.addSelectedImage(viewModel.takenPhotoUri.value)
     }
 
     Scaffold(
@@ -121,21 +150,65 @@ fun DocumentScreen(
         },
         floatingActionButton = {
             if (isEditing) {
-                FloatingActionButton(
-                    onClick = {
-                        when {
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
-                                permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    AnimatedVisibility(
+                        visible = expanded,
+                        enter = expandVertically(
+                            animationSpec = tween(200),
+                            expandFrom = Alignment.Bottom
+                        ),
+                        exit = shrinkVertically(
+                            animationSpec = tween(200),
+                            shrinkTowards = Alignment.Bottom
+                        )
+                    ) {
+                        Column {
+                            FloatingActionButton(
+                                onClick = {
+                                    expanded = false
+                                    when {
+                                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
+                                            permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+                                        }
+                                        else -> {
+                                            multipleImagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                        }
+                                    }
+                                },
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            ) {
+                                Icon(Icons.Default.PhotoLibrary, contentDescription = "Выбрать из галереи")
                             }
-                            else -> {
-                                multipleImagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+
+                            FloatingActionButton(
+                                onClick = {
+                                    expanded = false
+                                    cameraLauncher()
+                                },
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            ) {
+                                Icon(Icons.Default.PhotoCamera, contentDescription = "Сделать фото")
                             }
                         }
-                    },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Добавить изображение")
+                    }
+
+                    FloatingActionButton(
+                        onClick = { expanded = !expanded },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = if (expanded) "Закрыть" else "Добавить изображение",
+                            modifier = Modifier.rotate(rotation)
+                        )
+                    }
                 }
             }
         }

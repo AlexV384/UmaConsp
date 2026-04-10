@@ -13,7 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.umaconsp.R
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,9 +80,7 @@ fun SettingsDrawerContent(
         } else {
             ImportModel(
                 modifier = Modifier.fillMaxWidth(),
-                onPicked = { uri ->
-                    scope.launch { onModelDirPicked(uri) }
-                }
+                onPicked = onModelDirPicked
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -98,15 +98,18 @@ fun SettingsDrawerContent(
             }
 
             LaunchedEffect(selectedItem) {
-                if (selectedItem != "(unload)") {
-                    isModelLoading = true
-                    try {
-                        onLocalModelPicked(selectedItem)
-                    } finally {
-                        isModelLoading = false
+                isModelLoading = true
+                try {
+                    withContext(Dispatchers.IO) {
+                        if (selectedItem == "(unload)") {
+                            // Handle unload
+                        } else {
+                            // Handle loading the selected model
+                            onLocalModelPicked(selectedItem)
+                        }
                     }
-                } else {
-                    onLocalModelPicked(selectedItem)
+                } finally {
+                    isModelLoading = false
                 }
             }
 

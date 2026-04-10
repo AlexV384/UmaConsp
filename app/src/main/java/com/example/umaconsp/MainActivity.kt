@@ -105,7 +105,7 @@ class MainActivity : ComponentActivity() {
                                     scope.launch { settingsManager.setServerIp(newIp) }
                                 },
                                 onModelDirPicked = { uri ->
-                                    scope.launch { modelManager.importModel(uri) }
+                                    modelManager.importModel(uri)
                                     modelList = modelManager.getImportedModels()
                                 },
                                 modelList = modelList,
