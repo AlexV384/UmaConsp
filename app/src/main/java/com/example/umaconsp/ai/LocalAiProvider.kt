@@ -4,6 +4,8 @@ import android.content.ContentResolver
 import android.net.Uri
 import com.example.umaconsp.UmaconspApplication
 import com.example.umaconsp.llamacpp.Native
+import com.textimage.processor.ImageProcessor
+import com.textimage.processor.ImageUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -20,7 +22,10 @@ class LocalAiProvider : AiProvider {
             // Convert each Uri → ByteArray on the IO dispatcher
             val byteArrays = images.map { uri ->
                 withContext(Dispatchers.IO) {
-                    uriToByteArray(UmaconspApplication.instance.contentResolver, uri)
+                    val unprocessed = ImageUtil.decode(UmaconspApplication.instance.getAppContext(), uri)!!
+                    val resized = ImageProcessor.resize(unprocessed, 800, 800, true)
+                    val bytes = ImageUtil.encode(resized)
+                    bytes
                 }
             }
 

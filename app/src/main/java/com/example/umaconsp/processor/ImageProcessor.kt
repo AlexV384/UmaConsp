@@ -8,6 +8,7 @@ import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
 import com.example.umaconsp.processor.ProcessParams
+import androidx.core.graphics.scale
 
 object ImageProcessor {
 
@@ -50,7 +51,7 @@ object ImageProcessor {
             }
         }
 
-        return Bitmap.createScaledBitmap(src, w, h, true)
+        return src.scale(w, h)
     }
 
     private fun adjustBrightnessContrast(src: Bitmap, brightness: Float, contrast: Float): Bitmap {
