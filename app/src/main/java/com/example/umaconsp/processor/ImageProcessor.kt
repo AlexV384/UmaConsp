@@ -7,6 +7,7 @@ import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
+import com.example.umaconsp.processor.ProcessParams
 
 object ImageProcessor {
 

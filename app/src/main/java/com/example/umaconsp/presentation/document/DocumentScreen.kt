@@ -31,11 +31,14 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.umaconsp.R
@@ -44,6 +47,7 @@ import com.example.umaconsp.utils.LocalDocumentListViewModel
 import com.example.umaconsp.utils.LocalAiProvider
 import com.example.umaconsp.utils.LocalResponseParser
 import com.example.umaconsp.utils.RichText
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +65,7 @@ fun DocumentScreen(
     }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     val text by viewModel.text.collectAsState()
     val isEditing by viewModel.isEditing.collectAsState()
@@ -70,6 +75,19 @@ fun DocumentScreen(
     var documentTitle by remember { mutableStateOf("Конспект") }
     LaunchedEffect(documentId) {
         documentTitle = documentListViewModel.getDocument(documentId)?.title ?: "Конспект"
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                viewModel.forceExport()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.forceExport()
+        }
     }
 
     var expanded by remember { mutableStateOf(false) }
@@ -104,13 +122,18 @@ fun DocumentScreen(
     ) { isSuccess ->
         if (isSuccess) {
             Log.d("PhotoTaker", "The photo is taken!")
+            scope.launch {
+                val success = viewModel.addPhotoAndSend(viewModel.takenPhotoUri.value)
+                if (!success) {
+                    Toast.makeText(context, "Не удалось сохранить фото", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
     val cameraLauncher = {
         viewModel.createPictureUri(context)
         camera.launch(viewModel.takenPhotoUri.value)
-        viewModel.addSelectedImage(viewModel.takenPhotoUri.value)
     }
 
     Scaffold(

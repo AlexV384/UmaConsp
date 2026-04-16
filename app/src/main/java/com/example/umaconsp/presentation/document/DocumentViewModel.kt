@@ -12,6 +12,7 @@ import com.example.umaconsp.ai.AiEvent
 import com.example.umaconsp.ai.AiProvider
 import com.example.umaconsp.ai.ResponseParser
 import com.example.umaconsp.presentation.documentlist.DocumentListViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -42,6 +43,7 @@ class DocumentViewModel(
 
     private val _takenPhotoUri = MutableStateFlow(Uri.EMPTY)
     val takenPhotoUri: StateFlow<Uri> = _takenPhotoUri
+
     init {
         viewModelScope.launch {
             _text.value = documentListViewModel.getDocumentContent(documentId)
@@ -114,6 +116,7 @@ class DocumentViewModel(
     fun clearSelectedImages() {
         _selectedImageUris.value = emptyList()
     }
+
     fun createPictureUri(
         context: Context,
         provider: String = "${context.packageName}.provider",
@@ -125,7 +128,18 @@ class DocumentViewModel(
         ).apply {
             createNewFile()
         }
-
         _takenPhotoUri.value = FileProvider.getUriForFile(context.applicationContext, provider, tempFile)
+    }
+
+    fun forceExport() {
+        viewModelScope.launch {
+            documentListViewModel.forceExportDocument(documentId)
+        }
+    }
+
+    suspend fun addPhotoAndSend(photoUri: Uri): Boolean {
+        addSelectedImage(photoUri)
+        sendImagesToModel()
+        return true
     }
 }
