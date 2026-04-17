@@ -10,8 +10,8 @@ interface ResponseParser {
 class DefaultResponseParser : ResponseParser {
     override fun parse(rawResponse: String): String {
         return try {
-            val trimmed = rawResponse.trim()
-            val jsonObject = JSONObject(trimmed)
+            val cleaned = cleanRawResponse(rawResponse)
+            val jsonObject = JSONObject(cleaned)
 
             when {
                 jsonObject.has("error") -> "Ошибка: ${jsonObject.getString("error")}"
@@ -32,6 +32,12 @@ class DefaultResponseParser : ResponseParser {
         } catch (e: Exception) {
             "Ошибка парсинга ответа: ${e.message}"
         }
+    }
+    private fun cleanRawResponse(rawResponse: String): String {
+        var result = rawResponse.trim()
+        result = result.replace(Regex("(?s)<think>.*?</think>"), "").trim()
+        result = result.replace(Regex("```(?:json)?\\s*(.*?)\\s*```", RegexOption.DOT_MATCHES_ALL), "$1").trim()
+        return result
     }
 
     private fun formatToMarkdown(jsonObject: Any): String {
@@ -93,7 +99,12 @@ class DefaultResponseParser : ResponseParser {
 }
 class PlaintextResponseParser: ResponseParser{
     override fun parse(rawResponse: String): String {
-        return rawResponse
+        return cleanRawResponse(rawResponse)
     }
-
+    private fun cleanRawResponse(rawResponse: String): String {
+        var result = rawResponse.trim()
+        result = result.replace(Regex("(?s)<think>.*?</think>"), "").trim()
+        result = result.replace(Regex("```(?:json)?\\s*(.*?)\\s*```", RegexOption.DOT_MATCHES_ALL), "$1").trim()
+        return result
+    }
 }
