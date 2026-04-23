@@ -101,12 +101,7 @@ fun SettingsDrawerContent(
                 isModelLoading = true
                 try {
                     withContext(Dispatchers.IO) {
-                        if (selectedItem == "(unload)") {
-                            // Handle unload
-                        } else {
-                            // Handle loading the selected model
-                            onLocalModelPicked(selectedItem)
-                        }
+                        onLocalModelPicked(selectedItem)
                     }
                 } finally {
                     isModelLoading = false
