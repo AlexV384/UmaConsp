@@ -27,7 +27,7 @@ object Native {
     private external fun converseJni(addr: Long, image: ByteArray, callback: TokenCallback, prompt: String)
     fun conversePub(image: ByteArray, callback: TokenCallback){
         if (loadedModelAddr != 0L){
-            converseJni(loadedModelAddr, image, callback, DEFAULT_JSON)
+            converseJni(loadedModelAddr, image, callback, MINERU_TEXT)
         } else {
             Log.d(TAG, "Cannot converse when model is not loaded")
         }
