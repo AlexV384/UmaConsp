@@ -35,3 +35,12 @@ const val MINERU_LAYOUT = "\nLayout Detection:"
 const val MINERU_TABLE = "\nTable Recognition:"
 const val MINERU_EQUATION = "\nFormula Recognition:"
 const val GLM_TEXT = "\nText Recognition:"
+const val DEFAULT_INSTRUCT = """
+    # Instructions
+    Write down what you see on this image. Write ALL TEXT that IS POSSIBLE to see.
+    Every line of text is an object:
+    - data: A JSON string with the following fields:
+        - text: Content of the current line
+        - style: Either regular, bold, italic or bolditalic
+        - alignment: Either left, right or center
+"""
