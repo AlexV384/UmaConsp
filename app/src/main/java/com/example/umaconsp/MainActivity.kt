@@ -39,15 +39,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             val isDarkTheme by themeManager.isDarkTheme.collectAsState(initial = false)
             val modelMode by settingsManager.modelModeFlow.collectAsState(initial = SettingsManager.DEFAULT_MODE)
+            val ocrLanguage by settingsManager.ocrLanguageFlow.collectAsState(initial = SettingsManager.DEFAULT_OCR_LANGUAGE)
             var modelList by remember { mutableStateOf(modelManager.getImportedModels()) }
             val exportFolderUri by settingsManager.exportFolderUriFlow.collectAsState(initial = null)
 
             // Определяем AI провайдера и парсер ответа в зависимости от режима
-            val (aiProvider, responseParser) = remember(modelMode) {
+            // Ключом для remember служит modelMode + ocrLanguage, чтобы пересоздать провайдера при смене языка
+            val (aiProvider, responseParser) = remember(modelMode, ocrLanguage) {
                 when (modelMode) {
                     "local_model" -> LocalAiProvider() to PlaintextResponseParser()
-                    "google_mlkit" -> TesseractAiProvider() to PlaintextResponseParser()
-                    else -> TesseractAiProvider() to PlaintextResponseParser()
+                    "google_mlkit" -> TesseractAiProvider(ocrLanguage) to PlaintextResponseParser()
+                    else -> TesseractAiProvider(ocrLanguage) to PlaintextResponseParser()
                 }
             }
 
@@ -95,6 +97,10 @@ class MainActivity : ComponentActivity() {
                                 modelMode = modelMode,
                                 onModelModeChange = { mode ->
                                     scope.launch { settingsManager.setModelMode(mode) }
+                                },
+                                ocrLanguage = ocrLanguage,
+                                onOcrLanguageChange = { lang ->
+                                    scope.launch { settingsManager.setOcrLanguage(lang) }
                                 },
                                 onModelDirPicked = { uri ->
                                     modelManager.importModel(uri)

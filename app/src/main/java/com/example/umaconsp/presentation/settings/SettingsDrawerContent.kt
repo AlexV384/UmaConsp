@@ -21,6 +21,8 @@ fun SettingsDrawerContent(
     onThemeChange: (Boolean) -> Unit,
     modelMode: String,
     onModelModeChange: (String) -> Unit,
+    ocrLanguage: String,
+    onOcrLanguageChange: (String) -> Unit,
     onModelDirPicked: suspend (uri: Uri) -> Unit,
     modelList: List<String>,
     onLocalModelPicked: suspend (name: String) -> Unit,
@@ -81,6 +83,55 @@ fun SettingsDrawerContent(
                             expanded = false
                         }
                     )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Выбор языка OCR (только для Tesseract)
+        if (selectedMode == "google_mlkit") {
+            Text(
+                text = "Язык OCR",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            val languages = listOf("rus", "eng", "rus+eng")
+            val languageLabels = mapOf(
+                "rus" to "Русский",
+                "eng" to "Английский",
+                "rus+eng" to "Русский + Английский"
+            )
+            var langExpanded by remember { mutableStateOf(false) }
+            var selectedLanguage by remember { mutableStateOf(ocrLanguage) }
+            ExposedDropdownMenuBox(
+                expanded = langExpanded,
+                onExpandedChange = { langExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = languageLabels[selectedLanguage] ?: selectedLanguage,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Язык") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = langExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                )
+                ExposedDropdownMenu(
+                    expanded = langExpanded,
+                    onDismissRequest = { langExpanded = false }
+                ) {
+                    languages.forEach { lang ->
+                        DropdownMenuItem(
+                            text = { Text(languageLabels[lang] ?: lang) },
+                            onClick = {
+                                selectedLanguage = lang
+                                onOcrLanguageChange(lang)
+                                langExpanded = false
+                            }
+                        )
+                    }
                 }
             }
         }

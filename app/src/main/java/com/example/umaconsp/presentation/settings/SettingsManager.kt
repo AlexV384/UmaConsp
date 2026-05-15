@@ -16,8 +16,10 @@ class SettingsManager(context: Context) {
 
     companion object {
         private val MODEL_MODE_KEY = stringPreferencesKey("model_mode")
+        private val OCR_LANGUAGE_KEY = stringPreferencesKey("ocr_language")
         private val EXPORT_FOLDER_URI_KEY = stringPreferencesKey("export_folder_uri")
         const val DEFAULT_MODE = "google_mlkit"  // "local_model", "google_mlkit"
+        const val DEFAULT_OCR_LANGUAGE = "rus"  // "rus", "eng", "rus+eng"
     }
 
     val modelModeFlow: Flow<String> = dataStore.data.map { preferences ->
@@ -27,6 +29,16 @@ class SettingsManager(context: Context) {
     suspend fun setModelMode(mode: String) {
         dataStore.edit { preferences ->
             preferences[MODEL_MODE_KEY] = mode
+        }
+    }
+
+    val ocrLanguageFlow: Flow<String> = dataStore.data.map { preferences ->
+        preferences[OCR_LANGUAGE_KEY] ?: DEFAULT_OCR_LANGUAGE
+    }
+
+    suspend fun setOcrLanguage(language: String) {
+        dataStore.edit { preferences ->
+            preferences[OCR_LANGUAGE_KEY] = language
         }
     }
 
