@@ -3,7 +3,6 @@ package com.example.umaconsp.presentation.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -13,22 +12,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.umaconsp.R
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsDrawerContent(
     isDarkTheme: Boolean,
     onThemeChange: (Boolean) -> Unit,
-    serverIp: String,
-    onIpChange: (String) -> Unit,
+    modelMode: String,
+    onModelModeChange: (String) -> Unit,
     onModelDirPicked: suspend (uri: Uri) -> Unit,
     modelList: List<String>,
     onLocalModelPicked: suspend (name: String) -> Unit,
-    useLocalModel: Boolean,
-    onUseLocalModelChange: (Boolean) -> Unit,
     exportFolderUri: String?,
     onExportFolderPicked: suspend (uri: Uri) -> Unit
 ) {
@@ -46,110 +41,91 @@ fun SettingsDrawerContent(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        // Выбор режима обработки
+        Text(
+            text = "Режим распознавания",
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        val modes = listOf("google_mlkit", "local_model")
+        val modeLabels = mapOf(
+            "google_mlkit" to "Tesseract OCR",
+            "local_model" to "Локальная модель (llama)"
+        )
+        var expanded by remember { mutableStateOf(false) }
+        var selectedMode by remember { mutableStateOf(modelMode) }
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
         ) {
-            Text(
-                text = "Серверная обработка",
-                style = MaterialTheme.typography.bodyLarge
+            OutlinedTextField(
+                value = modeLabels[selectedMode] ?: selectedMode,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Режим") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
             )
-            Switch(
-                checked = !useLocalModel,
-                onCheckedChange = { isChecked ->
-                    onUseLocalModelChange(!isChecked)
-                },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    uncheckedThumbColor = MaterialTheme.colorScheme.outline
-                )
-            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                modes.forEach { mode ->
+                    DropdownMenuItem(
+                        text = { Text(modeLabels[mode] ?: mode) },
+                        onClick = {
+                            selectedMode = mode
+                            onModelModeChange(mode)
+                            expanded = false
+                        }
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (!useLocalModel) {
-            OutlinedTextField(
-                value = serverIp,
-                onValueChange = onIpChange,
-                label = { Text(stringResource(R.string.settings_server_ip)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else {
+        // Дополнительные настройки для локальной модели
+        if (selectedMode == "local_model") {
             ImportModel(
                 modifier = Modifier.fillMaxWidth(),
                 onPicked = onModelDirPicked
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            var expanded by remember { mutableStateOf(false) }
-            var selectedItem by remember { mutableStateOf("(unload)") }
-            var isModelLoading by remember { mutableStateOf(false) }
-
+            Spacer(modifier = Modifier.height(8.dp))
+            var modelExpanded by remember { mutableStateOf(false) }
+            var selectedModel by remember { mutableStateOf("(unload)") }
             val dropdownItems = listOf("(unload)") + modelList
 
-            LaunchedEffect(modelList) {
-                if (selectedItem !in dropdownItems) {
-                    selectedItem = "(unload)"
-                }
-            }
-
-            LaunchedEffect(selectedItem) {
-                isModelLoading = true
-                try {
-                    withContext(Dispatchers.IO) {
-                        onLocalModelPicked(selectedItem)
-                    }
-                } finally {
-                    isModelLoading = false
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+            ExposedDropdownMenuBox(
+                expanded = modelExpanded,
+                onExpandedChange = { modelExpanded = it }
             ) {
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it },
-                    modifier = Modifier.weight(1f)
+                OutlinedTextField(
+                    value = selectedModel,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(stringResource(R.string.select_local)) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                )
+                ExposedDropdownMenu(
+                    expanded = modelExpanded,
+                    onDismissRequest = { modelExpanded = false }
                 ) {
-                    OutlinedTextField(
-                        value = selectedItem,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(stringResource(R.string.select_local)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                        enabled = !isModelLoading
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        dropdownItems.forEach { item ->
-                            DropdownMenuItem(
-                                text = { Text(item) },
-                                onClick = {
-                                    selectedItem = item
-                                    expanded = false
+                    dropdownItems.forEach { item ->
+                        DropdownMenuItem(
+                            text = { Text(item) },
+                            onClick = {
+                                selectedModel = item
+                                modelExpanded = false
+                                scope.launch {
+                                    onLocalModelPicked(item)
                                 }
-                            )
-                        }
-                    }
-                }
-                AnimatedVisibility(visible = isModelLoading) {
-                    Row {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(38.dp).padding(2.dp),
-                            strokeWidth = 3.dp,
-                            color = MaterialTheme.colorScheme.primary
+                            }
                         )
                     }
                 }

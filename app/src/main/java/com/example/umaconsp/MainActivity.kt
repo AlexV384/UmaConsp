@@ -12,9 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.umaconsp.ai.DefaultResponseParser
-import com.example.umaconsp.ai.LocalAiProvider
-import com.example.umaconsp.ai.RemoteAiProvider
+import com.example.umaconsp.ai.*
 import com.example.umaconsp.data.localstorage.PrivateFolder
 import com.example.umaconsp.llamacpp.Native
 import com.example.umaconsp.presentation.document.DocumentScreen
@@ -38,25 +36,19 @@ class MainActivity : ComponentActivity() {
         val documentListViewModel = DocumentListViewModel()
         val modelManager = PrivateFolder(applicationContext)
 
-        val responseParser = DefaultResponseParser()
-
         setContent {
             val isDarkTheme by themeManager.isDarkTheme.collectAsState(initial = false)
-            val serverIp by settingsManager.serverIpFlow.collectAsState(initial = SettingsManager.DEFAULT_IP)
-            val useLocalModel by settingsManager.useLocalModelFlow.collectAsState(initial = true)
+            val modelMode by settingsManager.modelModeFlow.collectAsState(initial = SettingsManager.DEFAULT_MODE)
             var modelList by remember { mutableStateOf(modelManager.getImportedModels()) }
             val exportFolderUri by settingsManager.exportFolderUriFlow.collectAsState(initial = null)
 
-            // Создаём провайдера в зависимости от режима
-            val aiProvider = if (useLocalModel) {
-                LocalAiProvider()
-            } else {
-                RemoteAiProvider()
-            }
-
-            // При изменении IP обновляем глобальный объект (только для RemoteAiProvider)
-            LaunchedEffect(serverIp) {
-                AiApi.currentIp = serverIp
+            // Определяем AI провайдера и парсер ответа в зависимости от режима
+            val (aiProvider, responseParser) = remember(modelMode) {
+                when (modelMode) {
+                    "local_model" -> LocalAiProvider() to PlaintextResponseParser()
+                    "google_mlkit" -> TesseractAiProvider() to PlaintextResponseParser()
+                    else -> TesseractAiProvider() to PlaintextResponseParser()
+                }
             }
 
             UmaconspTheme(darkTheme = isDarkTheme) {
@@ -100,9 +92,9 @@ class MainActivity : ComponentActivity() {
                                 onThemeChange = { enabled ->
                                     scope.launch { themeManager.setDarkTheme(enabled) }
                                 },
-                                serverIp = serverIp,
-                                onIpChange = { newIp ->
-                                    scope.launch { settingsManager.setServerIp(newIp) }
+                                modelMode = modelMode,
+                                onModelModeChange = { mode ->
+                                    scope.launch { settingsManager.setModelMode(mode) }
                                 },
                                 onModelDirPicked = { uri ->
                                     modelManager.importModel(uri)
@@ -116,10 +108,6 @@ class MainActivity : ComponentActivity() {
                                         val fullPath = applicationContext.filesDir.path + "/" + name
                                         Native.loadModelPub(fullPath)
                                     }
-                                },
-                                useLocalModel = useLocalModel,
-                                onUseLocalModelChange = { useLocal ->
-                                    scope.launch { settingsManager.setUseLocalModel(useLocal) }
                                 }
                             )
                         }

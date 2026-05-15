@@ -3,7 +3,6 @@ package com.example.umaconsp.presentation.settings
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -16,29 +15,18 @@ class SettingsManager(context: Context) {
     private val dataStore = context.dataStore
 
     companion object {
-        private val SERVER_IP_KEY = stringPreferencesKey("server_ip")
-        private val USE_LOCAL_MODEL_KEY = booleanPreferencesKey("use_local_model")
+        private val MODEL_MODE_KEY = stringPreferencesKey("model_mode")
         private val EXPORT_FOLDER_URI_KEY = stringPreferencesKey("export_folder_uri")
-        const val DEFAULT_IP = "192.168.1.67"
+        const val DEFAULT_MODE = "google_mlkit"  // "local_model", "google_mlkit"
     }
 
-    val serverIpFlow: Flow<String> = dataStore.data.map { preferences ->
-        preferences[SERVER_IP_KEY] ?: DEFAULT_IP
+    val modelModeFlow: Flow<String> = dataStore.data.map { preferences ->
+        preferences[MODEL_MODE_KEY] ?: DEFAULT_MODE
     }
 
-    suspend fun setServerIp(ip: String) {
+    suspend fun setModelMode(mode: String) {
         dataStore.edit { preferences ->
-            preferences[SERVER_IP_KEY] = ip
-        }
-    }
-
-    val useLocalModelFlow: Flow<Boolean> = dataStore.data.map { preferences ->
-        preferences[USE_LOCAL_MODEL_KEY] ?: true
-    }
-
-    suspend fun setUseLocalModel(useLocal: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[USE_LOCAL_MODEL_KEY] = useLocal
+            preferences[MODEL_MODE_KEY] = mode
         }
     }
 
