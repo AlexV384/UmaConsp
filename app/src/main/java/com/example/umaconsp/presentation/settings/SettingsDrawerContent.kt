@@ -49,9 +49,9 @@ fun SettingsDrawerContent(
             style = MaterialTheme.typography.bodyLarge
         )
         Spacer(modifier = Modifier.height(8.dp))
-        val modes = listOf("google_mlkit", "local_model")
+        val modes = listOf("tesseract", "local_model")
         val modeLabels = mapOf(
-            "google_mlkit" to "Tesseract OCR",
+            "tesseract" to "Tesseract OCR",
             "local_model" to "Локальная модель (llama)"
         )
         var expanded by remember { mutableStateOf(false) }
@@ -90,7 +90,7 @@ fun SettingsDrawerContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Выбор языка OCR (только для Tesseract)
-        if (selectedMode == "google_mlkit") {
+        if (selectedMode == "tesseract") {
             Text(
                 text = "Язык OCR",
                 style = MaterialTheme.typography.bodyLarge

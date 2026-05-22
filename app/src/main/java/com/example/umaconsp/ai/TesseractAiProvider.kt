@@ -24,7 +24,6 @@ class TesseractAiProvider(private val language: String = "rus") : AiProvider {
     @Volatile private var currentLanguage: String? = null
 
     private suspend fun getApi(): TessBaseAPI {
-        // Переинициализируем, если язык изменился
         if (tessApi != null && currentLanguage != language) {
             tessApi?.recycle()
             tessApi = null
