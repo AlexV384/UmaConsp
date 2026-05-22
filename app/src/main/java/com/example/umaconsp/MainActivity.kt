@@ -15,6 +15,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.umaconsp.ai.*
 import com.example.umaconsp.data.localstorage.PrivateFolder
 import com.example.umaconsp.llamacpp.Native
+import com.example.umaconsp.presentation.debug.ChatDebugActivity
 import com.example.umaconsp.presentation.document.DocumentScreen
 import com.example.umaconsp.presentation.documentlist.DocumentListScreen
 import com.example.umaconsp.presentation.documentlist.DocumentListViewModel
@@ -140,6 +141,12 @@ class MainActivity : ComponentActivity() {
                                         },
                                         onOpenSettings = {
                                             scope.launch { drawerState.open() }
+                                        },
+                                        onOpenChat = {
+                                            // Launch chat layout activity
+                                            val ctx = this@MainActivity
+                                            val intent = android.content.Intent(ctx, ChatDebugActivity::class.java)
+                                            ctx.startActivity(intent)
                                         }
                                     )
                                 }

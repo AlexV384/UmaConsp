@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddComment
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -20,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import com.example.umaconsp.R
 import com.example.umaconsp.presentation.decor.CleatScatterBackgroundCanvas
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,7 +30,8 @@ fun DocumentListScreen(
     viewModel: DocumentListViewModel,
     onDocumentClick: (String) -> Unit,
     onCreateDocument: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenChat: () -> Unit = {}
 ) {
     val documents by viewModel.documents.collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
@@ -51,12 +55,21 @@ fun DocumentListScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 navigationIcon = {
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.settings_title),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
+                    Row() {
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = stringResource(R.string.settings_title),
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                        IconButton(onClick = onOpenChat) {
+                            Icon(
+                                imageVector = Icons.Default.AddComment,
+                                contentDescription = stringResource(R.string.chat_title),
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -170,7 +183,7 @@ fun DocumentCard(
                 )
                 // можно показать дату последнего изменения
                 Text(
-                    text = java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault())
+                    text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
                         .format(document.lastModified),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
