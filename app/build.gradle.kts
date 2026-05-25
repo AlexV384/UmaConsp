@@ -62,4 +62,5 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
 
     implementation("com.github.adaptech-cz.Tesseract4Android:tesseract4android:4.7.0")
+    implementation("com.google.android.material:material:1.12.0")
 }

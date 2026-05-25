@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -16,66 +17,72 @@ import androidx.compose.ui.res.painterResource
 import com.example.umaconsp.R
 import kotlin.random.Random
 
-val cleatFilled = R.drawable.cleat_filled
-val cleatHollow = R.drawable.cleat_hollow
+private data class ScatterItem(
+    val xFraction: Float,
+    val yFraction: Float,
+    val sizeFactor: Float,
+    val rotation: Float,
+    val alpha: Float,
+    val color: Color
+)
 
 @Composable
-public fun CleatScatterBackgroundCanvas() {
+fun CleatScatterBackgroundCanvas() {
     val bitmapPainters = listOf(
-        painterResource(cleatFilled),
-        painterResource(cleatHollow)
+        painterResource(R.drawable.cleat_filled),
+        painterResource(R.drawable.cleat_hollow)
     )
+
+    val items = remember {
+        val random = Random(17)
+        buildList {
+            repeat(18) {
+                add(
+                    ScatterItem(
+                        xFraction = random.nextFloat(),
+                        yFraction = random.nextFloat(),
+                        sizeFactor = random.nextFloat() * 0.09f + 0.04f,
+                        rotation = random.nextFloat() * 160f - 80f,
+                        alpha = random.nextFloat() * 0.14f + 0.04f,
+                        color = when (it % 4) {
+                            0 -> Color(0xFF5B5BE6)
+                            1 -> Color(0xFF0F766E)
+                            2 -> Color(0xFF7C3AED)
+                            else -> Color(0xFF94A3B8)
+                        }
+                    )
+                )
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawScatteredCleats(bitmapPainters)
+            drawScatteredCleats(bitmapPainters, items)
         }
     }
 }
-val colors = listOf(
-    Color(0xFF2196F3).copy(alpha = 0.15f), // Blue
-    Color(0xFFFF9800).copy(alpha = 0.2f), // Orange
-    Color(0xFF4CAF50).copy(alpha = 0.1f), // Green
-    Color.Gray.copy(alpha = 0.05f)
-)
-private fun DrawScope.drawScatteredCleats(painters: List<Painter>) {
-    repeat(10) { index ->
-//        val color = colors[index % colors.size]
-        val radius = Random.nextFloat() * 2.0f - 1.0f // Random radius between 0.05 - 0.1
-        val x = Random.nextFloat() * size.width
-        val y = Random.nextFloat() * size.height
 
+private fun DrawScope.drawScatteredCleats(
+    painters: List<Painter>,
+    items: List<ScatterItem>
+) {
+    items.forEachIndexed { index, item ->
         val painter = painters[index % painters.size]
-        val tint = ColorFilter.tint(colors[index % colors.size])
+        val tint = ColorFilter.tint(item.color.copy(alpha = item.alpha))
         with(painter) {
-            translate(left = x, top = y) {
-                rotate(
-                    degrees = radius * 120f,
-                    pivot = Offset(0.0f, 0.0f)
-                ){
-                    draw(size = painter.intrinsicSize * 0.4f, alpha = 0.2f, colorFilter = tint)
+            translate(
+                left = size.width * item.xFraction,
+                top = size.height * item.yFraction
+            ) {
+                rotate(degrees = item.rotation, pivot = Offset.Zero) {
+                    draw(
+                        size = painter.intrinsicSize * item.sizeFactor,
+                        alpha = 1f,
+                        colorFilter = tint
+                    )
                 }
             }
         }
     }
-
-    repeat(30) { index ->
-//        val color = colors[index % colors.size]
-        val radius = Random.nextFloat() * 2.0f - 1.0f // Random radius between 0.05 - 0.1
-        val x = Random.nextFloat() * size.width
-        val y = Random.nextFloat() * size.height
-
-        val painter = painters[index % painters.size]
-        val tint = ColorFilter.tint(colors[index % colors.size])
-        with(painter) {
-            translate(left = x, top = y) {
-                rotate(
-                    degrees = radius * 30f,
-                    pivot = Offset(0.0f, 0.0f)
-                ){
-                    draw(size = painter.intrinsicSize * 0.06f, alpha = 1.0f, colorFilter = tint)
-                }
-            }
-        }
-    }
-
 }

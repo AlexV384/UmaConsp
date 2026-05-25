@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -134,9 +135,7 @@ fun OnboardingScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     when (step) {
-                        0 -> IntroStep(
-                            onNext = { step = 1 }
-                        )
+                        0 -> IntroStep(onNext = { step = 1 })
 
                         1 -> FolderStep(
                             exportFolderUriString = exportFolderUriString,
@@ -170,9 +169,7 @@ fun OnboardingScreen(
                                     onPickModelFolder = onModelDirPicked,
                                     onSelectModel = { model ->
                                         selectedModel = model
-                                        scope.launch {
-                                            onLocalModelPicked(model)
-                                        }
+                                        scope.launch { onLocalModelPicked(model) }
                                     },
                                     onFinish = { onCompleted() }
                                 )
@@ -194,6 +191,8 @@ private fun IntroStep(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
+        Spacer(Modifier.height(8.dp))
+
         Icon(
             imageVector = Icons.Default.Info,
             contentDescription = null,
@@ -255,6 +254,8 @@ private fun FolderStep(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
+        Spacer(Modifier.height(8.dp))
+
         Text(
             text = "Шаг 1. Папка для конспектов",
             style = MaterialTheme.typography.headlineSmall,
@@ -301,6 +302,8 @@ private fun FolderStep(
             onClick = onPickFolder,
             modifier = Modifier.fillMaxWidth()
         ) {
+            Icon(Icons.Default.FolderOpen, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
             Text("Выбрать папку")
         }
 
@@ -321,6 +324,8 @@ private fun ModeStep(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
+        Spacer(Modifier.height(8.dp))
+
         Text(
             text = "Шаг 2. Выберите режим распознавания",
             style = MaterialTheme.typography.headlineSmall,
@@ -329,7 +334,7 @@ private fun ModeStep(
         )
 
         Text(
-            text = "Выбор здесь сделан как радиокнопки, чтобы сразу было понятно, что это именно выбор одного варианта.",
+            text = "Выбор сделан в виде радиокнопок — так сразу видно, что активен только один вариант.",
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
@@ -369,6 +374,8 @@ private fun LanguageStep(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
+        Spacer(Modifier.height(8.dp))
+
         Text(
             text = "Шаг 3. Язык распознавания",
             style = MaterialTheme.typography.headlineSmall,
@@ -429,6 +436,8 @@ private fun LocalModelStep(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
+        Spacer(Modifier.height(8.dp))
+
         Text(
             text = "Шаг 3. Локальная модель",
             style = MaterialTheme.typography.headlineSmall,
@@ -588,10 +597,7 @@ private fun ModelChoiceButton(
             onClick = onClick,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = null
-            )
+            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             Text(title)
         }

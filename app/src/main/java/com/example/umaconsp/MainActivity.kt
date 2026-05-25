@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.umaconsp.ai.LocalAiProvider
+import com.example.umaconsp.ai.LocalAiProvider as LocalAiProviderLocal
 import com.example.umaconsp.ai.PlaintextResponseParser
 import com.example.umaconsp.ai.TesseractAiProvider
 import com.example.umaconsp.data.localstorage.PrivateFolder
@@ -41,9 +41,9 @@ import com.example.umaconsp.presentation.settings.SettingsDrawerContent
 import com.example.umaconsp.presentation.settings.SettingsManager
 import com.example.umaconsp.presentation.theme.ThemeManager
 import com.example.umaconsp.ui.theme.UmaconspTheme
-import com.example.umaconsp.utils.LocalAiProvider
-import com.example.umaconsp.utils.LocalDocumentListViewModel
-import com.example.umaconsp.utils.LocalResponseParser
+import com.example.umaconsp.utils.LocalAiProvider as LocalAiProviderState
+import com.example.umaconsp.utils.LocalDocumentListViewModel as LocalDocumentListViewModelState
+import com.example.umaconsp.utils.LocalResponseParser as LocalResponseParserState
 import kotlinx.coroutines.launch
 
 private const val MODE_TESSERACT = "tesseract"
@@ -81,7 +81,7 @@ class MainActivity : ComponentActivity() {
 
             val (aiProvider, responseParser) = remember(modelMode, ocrLanguage) {
                 when (modelMode) {
-                    MODE_LOCAL -> LocalAiProvider() to PlaintextResponseParser()
+                    MODE_LOCAL -> LocalAiProviderLocal() to PlaintextResponseParser()
                     MODE_TESSERACT -> TesseractAiProvider(ocrLanguage) to PlaintextResponseParser()
                     else -> TesseractAiProvider(ocrLanguage) to PlaintextResponseParser()
                 }
@@ -148,17 +148,15 @@ class MainActivity : ComponentActivity() {
 
                     false -> {
                         CompositionLocalProvider(
-                            LocalDocumentListViewModel provides documentListViewModel,
-                            LocalAiProvider provides aiProvider,
-                            LocalResponseParser provides responseParser
+                            LocalDocumentListViewModelState provides documentListViewModel,
+                            LocalAiProviderState provides aiProvider,
+                            LocalResponseParserState provides responseParser
                         ) {
                             val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                             val navController = rememberNavController()
 
                             BackHandler(enabled = drawerState.isOpen) {
-                                scope.launch {
-                                    drawerState.close()
-                                }
+                                scope.launch { drawerState.close() }
                             }
 
                             LaunchedEffect(Unit) {
@@ -190,21 +188,15 @@ class MainActivity : ComponentActivity() {
                                         },
                                         isDarkTheme = isDarkTheme,
                                         onThemeChange = { enabled ->
-                                            scope.launch {
-                                                themeManager.setDarkTheme(enabled)
-                                            }
+                                            scope.launch { themeManager.setDarkTheme(enabled) }
                                         },
                                         modelMode = modelMode,
                                         onModelModeChange = { mode ->
-                                            scope.launch {
-                                                settingsManager.setModelMode(mode)
-                                            }
+                                            scope.launch { settingsManager.setModelMode(mode) }
                                         },
                                         ocrLanguage = ocrLanguage,
                                         onOcrLanguageChange = { language ->
-                                            scope.launch {
-                                                settingsManager.setOcrLanguage(language)
-                                            }
+                                            scope.launch { settingsManager.setOcrLanguage(language) }
                                         },
                                         onModelDirPicked = { uri ->
                                             modelManager.importModel(uri)

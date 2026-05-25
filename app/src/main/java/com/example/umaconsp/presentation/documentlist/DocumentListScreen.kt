@@ -2,7 +2,17 @@ package com.example.umaconsp.presentation.documentlist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -11,8 +21,28 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddComment
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -41,35 +71,39 @@ fun DocumentListScreen(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var documentToDelete by remember { mutableStateOf<DocumentItem?>(null) }
 
+    val isEmpty = documents.isEmpty()
+
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCreateDocument,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_chat))
+            if (!isEmpty) {
+                FloatingActionButton(
+                    onClick = onCreateDocument,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.new_chat))
+                }
             }
         },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 navigationIcon = {
-                    Row() {
-                        IconButton(onClick = onOpenSettings) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = stringResource(R.string.settings_title),
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                        IconButton(onClick = onOpenChat) {
-                            Icon(
-                                imageVector = Icons.Default.AddComment,
-                                contentDescription = stringResource(R.string.chat_title),
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.settings_title),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onOpenChat) {
+                        Icon(
+                            imageVector = Icons.Default.AddComment,
+                            contentDescription = stringResource(R.string.chat_title),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -80,14 +114,15 @@ fun DocumentListScreen(
         }
     ) { paddingValues ->
         CleatScatterBackgroundCanvas()
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (documents.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.no_chats),
+            if (isEmpty) {
+                EmptyDocumentsState(
+                    onCreateDocument = onCreateDocument,
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {
@@ -120,7 +155,10 @@ fun DocumentListScreen(
     RenameDocumentDialog(
         show = showRenameDialog,
         currentTitle = selectedDocument?.title ?: "",
-        onDismiss = { showRenameDialog = false },
+        onDismiss = {
+            showRenameDialog = false
+            selectedDocument = null
+        },
         onRename = { newName ->
             selectedDocument?.let { doc ->
                 scope.launch {
@@ -134,7 +172,10 @@ fun DocumentListScreen(
 
     DeleteDocumentConfirmationDialog(
         show = showDeleteConfirmation,
-        onDismiss = { showDeleteConfirmation = false },
+        onDismiss = {
+            showDeleteConfirmation = false
+            documentToDelete = null
+        },
         onConfirm = {
             documentToDelete?.let { doc ->
                 scope.launch {
@@ -145,6 +186,44 @@ fun DocumentListScreen(
             documentToDelete = null
         }
     )
+}
+
+@Composable
+private fun EmptyDocumentsState(
+    onCreateDocument: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Пока нет ни одного конспекта",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Создайте первый конспект, чтобы начать работу.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(16.dp))
+            Button(onClick = onCreateDocument) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.size(8.dp))
+                Text("Создать конспект")
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -181,7 +260,7 @@ fun DocumentCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                // можно показать дату последнего изменения
+
                 Text(
                     text = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
                         .format(document.lastModified),
@@ -190,6 +269,7 @@ fun DocumentCard(
                     maxLines = 1
                 )
             }
+
             IconButton(
                 onClick = onDelete,
                 modifier = Modifier
@@ -238,7 +318,8 @@ fun RenameDocumentDialog(
     onDismiss: () -> Unit,
     onRename: (String) -> Unit
 ) {
-    var newTitle by remember { mutableStateOf(currentTitle) }
+    var newTitle by remember(show, currentTitle) { mutableStateOf(currentTitle) }
+
     if (show) {
         AlertDialog(
             onDismissRequest = onDismiss,

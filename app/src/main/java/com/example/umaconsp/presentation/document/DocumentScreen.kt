@@ -15,15 +15,50 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +70,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -43,8 +79,8 @@ import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.umaconsp.R
 import com.example.umaconsp.presentation.documentlist.DocumentListViewModel
-import com.example.umaconsp.utils.LocalDocumentListViewModel
 import com.example.umaconsp.utils.LocalAiProvider
+import com.example.umaconsp.utils.LocalDocumentListViewModel
 import com.example.umaconsp.utils.LocalResponseParser
 import com.example.umaconsp.utils.RichText
 import kotlinx.coroutines.launch
@@ -63,6 +99,7 @@ fun DocumentScreen(
     val viewModel: DocumentViewModel = remember(documentId, aiProvider, responseParser) {
         DocumentViewModel(documentId, documentListViewModel, aiProvider, responseParser)
     }
+
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -94,8 +131,8 @@ fun DocumentScreen(
 
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 45f else 0f,
-        animationSpec = tween(durationMillis = 200),
-        label = "FAB rotation"
+        animationSpec = tween(durationMillis = 180),
+        label = "fabRotation"
     )
 
     val multipleImagePickerLauncher = rememberLauncherForActivityResult(
@@ -137,6 +174,7 @@ fun DocumentScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 navigationIcon = {
@@ -153,7 +191,7 @@ fun DocumentScreen(
                         text = documentTitle,
                         color = MaterialTheme.colorScheme.onPrimary,
                         maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 actions = {
@@ -173,31 +211,28 @@ fun DocumentScreen(
         },
         floatingActionButton = {
             if (isEditing) {
-                Column(
-                    horizontalAlignment = Alignment.End
-                ) {
+                Column(horizontalAlignment = Alignment.End) {
                     AnimatedVisibility(
                         visible = expanded,
                         enter = expandVertically(
-                            animationSpec = tween(200),
+                            animationSpec = tween(180),
                             expandFrom = Alignment.Bottom
                         ),
                         exit = shrinkVertically(
-                            animationSpec = tween(200),
+                            animationSpec = tween(160),
                             shrinkTowards = Alignment.Bottom
                         )
                     ) {
-                        Column {
+                        Column(horizontalAlignment = Alignment.End) {
                             FloatingActionButton(
                                 onClick = {
                                     expanded = false
-                                    when {
-                                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> {
-                                            permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
-                                        }
-                                        else -> {
-                                            multipleImagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                                        }
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+                                    } else {
+                                        multipleImagePickerLauncher.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
                                     }
                                 },
                                 containerColor = MaterialTheme.colorScheme.primary,
@@ -239,64 +274,64 @@ fun DocumentScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
                 .padding(paddingValues)
+                .padding(horizontal = 12.dp, vertical = 10.dp)
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (status.contains("ошибка", ignoreCase = true)) {
-                        MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-                    } else {
-                        MaterialTheme.colorScheme.primaryContainer
-                    }
-                )
-            ) {
-                Text(
-                    text = status,
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            StatusCard(status = status)
+
+            if (selectedImageUris.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                ImageStrip(selectedImageUris = selectedImageUris)
             }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                if (isEditing) {
-                    BasicTextField(
-                        value = text,
-                        onValueChange = { viewModel.updateText(it) },
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        textStyle = TextStyle(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 16.sp,
-                            lineHeight = 24.sp
-                        ),
-                        decorationBox = { innerTextField ->
-                            Box {
-                                if (text.isEmpty()) {
-                                    Text(
-                                        text = "Введите текст или отправьте изображение...",
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
+            Spacer(Modifier.height(10.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 2.dp
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    if (isEditing) {
+                        BasicTextField(
+                            value = text,
+                            onValueChange = { viewModel.updateText(it) },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            textStyle = TextStyle(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 16.sp,
+                                lineHeight = 24.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            ),
+                            decorationBox = { innerTextField ->
+                                Box {
+                                    if (text.isEmpty()) {
+                                        Text(
+                                            text = "Введите текст или отправьте изображение…",
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    }
+                                    innerTextField()
                                 }
-                                innerTextField()
                             }
-                        }
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
-                    ) {
-                        RichText(
-                            markdown = text,
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.onSurface
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp)
+                        ) {
+                            RichText(
+                                markdown = text,
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }
@@ -305,11 +340,45 @@ fun DocumentScreen(
 }
 
 @Composable
+private fun StatusCard(status: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (status.contains("ошибка", ignoreCase = true)) {
+                MaterialTheme.colorScheme.errorContainer
+            } else {
+                MaterialTheme.colorScheme.primaryContainer
+            }
+        )
+    ) {
+        Text(
+            text = status,
+            modifier = Modifier.padding(14.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (status.contains("ошибка", ignoreCase = true)) {
+                MaterialTheme.colorScheme.onErrorContainer
+            } else {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            }
+        )
+    }
+}
+
+@Composable
+private fun ImageStrip(selectedImageUris: List<Uri>) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        selectedImageUris.take(4).forEach { uri ->
+            SelectedImagePreview(imageUri = uri, onRemove = {})
+        }
+    }
+}
+
+@Composable
 fun SelectedImagePreview(imageUri: Uri, onRemove: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(80.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .size(84.dp)
+            .clip(RoundedCornerShape(16.dp))
     ) {
         Image(
             painter = rememberAsyncImagePainter(
@@ -325,20 +394,18 @@ fun SelectedImagePreview(imageUri: Uri, onRemove: () -> Unit) {
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .size(24.dp)
-                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                .padding(4.dp),
-            contentAlignment = Alignment.Center
+                .padding(4.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(Color.Black.copy(alpha = 0.45f))
         ) {
             IconButton(
                 onClick = onRemove,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.size(28.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Удалить",
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                    tint = Color.White
                 )
             }
         }

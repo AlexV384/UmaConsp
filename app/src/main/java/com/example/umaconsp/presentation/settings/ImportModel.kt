@@ -14,8 +14,10 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -58,37 +60,28 @@ fun ImportModel(
                 }
             }
         } else {
-            Log.e("ImportModelButton", "Failed to pick directory")
+            Log.e("ImportModel", "Failed to pick directory")
         }
     }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
+        modifier = modifier.animateContentSize(
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
             )
+        )
     ) {
         Button(
             onClick = {
-                if (!isLoading) {
-                    modelDirPicker.launch(Uri.EMPTY)
-                }
+                if (!isLoading) modelDirPicker.launch(Uri.EMPTY)
             },
             enabled = !isLoading,
-            modifier = Modifier
-                .weight(1f)
-                .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                )
+            modifier = Modifier.weight(1f)
         ) {
             Text(
-                stringResource(R.string.import_local),
+                text = stringResource(R.string.import_local),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -98,23 +91,21 @@ fun ImportModel(
             visible = isLoading,
             enter = expandHorizontally(
                 expandFrom = Alignment.Start,
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            ) + fadeIn(animationSpec = tween(300)),
+                animationSpec = tween(220, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(220)),
             exit = shrinkHorizontally(
                 shrinkTowards = Alignment.Start,
-                animationSpec = tween(300)
-            ) + fadeOut(animationSpec = tween(300))
+                animationSpec = tween(180)
+            ) + fadeOut(animationSpec = tween(180))
         ) {
-            Row {
-                Spacer(modifier = Modifier.width(8.dp))
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .padding(2.dp),
-                    strokeWidth = 3.dp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
+            Spacer(modifier = Modifier.width(10.dp))
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .size(28.dp)
+                    .padding(2.dp),
+                strokeWidth = 3.dp,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
